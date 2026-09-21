@@ -1,0 +1,35 @@
+<UserControl x:Class="CuadernoDigital.App.Views.PageCanvasView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:CuadernoDigital.App.Controls"
+             Background="#EEF2F7">
+    <Grid>
+        <ScrollViewer x:Name="ScrollHost"
+                      HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto"
+                      PanningMode="Both"
+                      CanContentScroll="False"
+                      Background="#EEF2F7">
+            <Grid Width="900" Height="1200" Margin="36" RenderTransformOrigin="0,0">
+                <Grid.RenderTransform>
+                    <ScaleTransform ScaleX="{Binding Zoom, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    ScaleY="{Binding Zoom, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                </Grid.RenderTransform>
+
+                <Border Background="White"
+                        BorderBrush="#CBD5E1"
+                        BorderThickness="1" />
+                <controls:PageBackgroundRenderer BackgroundType="{Binding CurrentPage.BackgroundType, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                 IsHitTestVisible="False" />
+                <Canvas x:Name="ObjectLayer" IsHitTestVisible="False" />
+                <InkCanvas x:Name="InkSurface"
+                           Background="Transparent"
+                           UsesTouchShape="True"
+                           PreviewMouseDown="InkSurface_PreviewInputStart"
+                           PreviewStylusDown="InkSurface_PreviewInputStart"
+                           PreviewMouseWheel="InkSurface_PreviewMouseWheel"
+                           StrokeCollected="InkSurface_StrokeCollected" />
+            </Grid>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

@@ -1,0 +1,10 @@
+<UserControl x:Class="CuadernoDigital.App.Views.CoverDesignerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Background="White">
+        <TextBlock Text="Disenador de portada - Fase 5"
+                   Foreground="#64748B"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center" />
+    </Grid>
+</UserControl>
