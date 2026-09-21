@@ -24,7 +24,6 @@
                 <Canvas x:Name="ObjectLayer" IsHitTestVisible="False" />
                 <InkCanvas x:Name="InkSurface"
                            Background="Transparent"
-                           UsesTouchShape="True"
                            PreviewMouseDown="InkSurface_PreviewInputStart"
                            PreviewStylusDown="InkSurface_PreviewInputStart"
                            PreviewMouseWheel="InkSurface_PreviewMouseWheel"

@@ -41,7 +41,7 @@ public partial class PageCanvasView : UserControl
     {
         InitializeComponent();
         ConfigureTool(InkToolMode.Pen, Colors.Black, 3);
-        InkSurface.Strokes.StrokesChanged += (_, _) => PersistCurrentInk();
+        InkSurface.Strokes.StrokesChanged += InkStrokes_StrokesChanged;
     }
 
     public event EventHandler? PageChanged;
@@ -139,8 +139,9 @@ public partial class PageCanvasView : UserControl
         isLoading = true;
         undoStack.Clear();
         redoStack.Clear();
+        InkSurface.Strokes.StrokesChanged -= InkStrokes_StrokesChanged;
         InkSurface.Strokes = PageSerializer.DeserializeStrokes(page?.InkBase64);
-        InkSurface.Strokes.StrokesChanged += (_, _) => PersistCurrentInk();
+        InkSurface.Strokes.StrokesChanged += InkStrokes_StrokesChanged;
         isLoading = false;
     }
 
@@ -158,9 +159,15 @@ public partial class PageCanvasView : UserControl
     private void ApplyInkSnapshot(string inkBase64)
     {
         isChangingHistory = true;
+        InkSurface.Strokes.StrokesChanged -= InkStrokes_StrokesChanged;
         InkSurface.Strokes = PageSerializer.DeserializeStrokes(inkBase64);
-        InkSurface.Strokes.StrokesChanged += (_, _) => PersistCurrentInk();
+        InkSurface.Strokes.StrokesChanged += InkStrokes_StrokesChanged;
         isChangingHistory = false;
+        PersistCurrentInk();
+    }
+
+    private void InkStrokes_StrokesChanged(object? sender, StrokeCollectionChangedEventArgs e)
+    {
         PersistCurrentInk();
     }
 
