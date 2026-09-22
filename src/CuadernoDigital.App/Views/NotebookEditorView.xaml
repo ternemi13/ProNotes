@@ -56,6 +56,7 @@
                 <Button Content="Cursor" Click="Cursor_Click" />
                 <Button Content="Texto" Click="InsertText_Click" />
                 <Button Content="Tabla" Click="InsertTable_Click" />
+                <Button Content="Grafica" Click="InsertChart_Click" />
                 <Button Content="Imagen" Click="InsertImage_Click" />
                 <ComboBox x:Name="InkColorBox"
                           Width="118"
@@ -173,7 +174,7 @@
                            FontSize="18"
                            FontWeight="SemiBold"
                            Margin="4,0,0,8" />
-                <TextBlock Text="Texto, tablas e imagenes activos. Usa Texto, Tabla, Imagen, Ctrl+V o click derecho. Selecciona una tabla para agregar o quitar filas y columnas."
+                <TextBlock Text="Texto, tablas, graficas e imagenes activos. Usa la barra, Ctrl+V o click derecho. Selecciona objetos para mover, duplicar, rotar, ordenar o eliminar."
                            TextWrapping="Wrap"
                            Foreground="#64748B"
                            Margin="4" />

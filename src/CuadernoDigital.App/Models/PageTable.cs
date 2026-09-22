@@ -15,6 +15,8 @@ public sealed class PageTable
     public int Rows { get; set; } = 3;
     public int Columns { get; set; } = 3;
     public double FontSize { get; set; } = 15;
+    public double Rotation { get; set; }
+    public int ZIndex { get; set; }
     public List<string> Cells { get; set; } = [];
 
     public void EnsureCellCount()

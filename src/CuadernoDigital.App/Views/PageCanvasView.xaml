@@ -9,14 +9,36 @@
                       Click="InsertTextMenuItem_Click" />
             <MenuItem Header="Insertar tabla"
                       Click="InsertTableMenuItem_Click" />
+            <MenuItem Header="Insertar grafica"
+                      Click="InsertChartMenuItem_Click" />
             <Separator />
             <MenuItem Header="Pegar"
                       InputGestureText="Ctrl+V"
                       Click="PasteMenuItem_Click" />
             <Separator />
+            <MenuItem Header="Cortar"
+                      InputGestureText="Ctrl+X"
+                      Click="CutMenuItem_Click" />
+            <MenuItem Header="Copiar"
+                      InputGestureText="Ctrl+C"
+                      Click="CopyMenuItem_Click" />
+            <MenuItem Header="Duplicar"
+                      InputGestureText="Ctrl+D"
+                      Click="DuplicateMenuItem_Click" />
+            <MenuItem Header="Editar grafica"
+                      Click="EditChartMenuItem_Click" />
             <MenuItem Header="Eliminar seleccionado"
                       InputGestureText="Supr"
                       Click="DeleteSelectedMenuItem_Click" />
+            <Separator />
+            <MenuItem Header="Traer al frente"
+                      Click="BringToFrontMenuItem_Click" />
+            <MenuItem Header="Enviar al fondo"
+                      Click="SendToBackMenuItem_Click" />
+            <MenuItem Header="Rotar derecha"
+                      Click="RotateRightMenuItem_Click" />
+            <MenuItem Header="Rotar izquierda"
+                      Click="RotateLeftMenuItem_Click" />
             <Separator />
             <MenuItem Header="Agregar fila a tabla"
                       Click="AddTableRowMenuItem_Click" />

@@ -113,9 +113,24 @@ public partial class NotebookEditorView : Window
         }
     }
 
-    private void PasteImage()
+    private void InsertChart_Click(object sender, RoutedEventArgs e)
     {
-        CanvasView.InsertImageFromClipboard();
+        var dialog = new ChartDataDialog
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            CanvasView.InsertChart(dialog.Chart);
+            currentTool = InkToolMode.Select;
+            ApplyInkSettings();
+        }
+    }
+
+    private void PasteObjectOrImage()
+    {
+        CanvasView.PasteObjectOrImage();
         currentTool = InkToolMode.Select;
         ApplyInkSettings();
     }
@@ -250,9 +265,37 @@ public partial class NotebookEditorView : Window
             return;
         }
 
+        if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.C)
+        {
+            CanvasView.CopySelectedObject();
+            e.Handled = true;
+            return;
+        }
+
+        if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.X)
+        {
+            CanvasView.CutSelectedObject();
+            e.Handled = true;
+            return;
+        }
+
+        if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.D)
+        {
+            CanvasView.DuplicateSelectedObject();
+            e.Handled = true;
+            return;
+        }
+
         if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.V)
         {
-            PasteImage();
+            PasteObjectOrImage();
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Delete)
+        {
+            CanvasView.DeleteSelectedObject();
             e.Handled = true;
         }
     }

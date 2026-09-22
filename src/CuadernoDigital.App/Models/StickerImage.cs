@@ -11,4 +11,5 @@ public sealed class StickerImage
     public double Width { get; set; } = 240;
     public double Height { get; set; } = 160;
     public double Rotation { get; set; }
+    public int ZIndex { get; set; }
 }

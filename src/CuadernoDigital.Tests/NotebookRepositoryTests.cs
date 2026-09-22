@@ -39,7 +39,9 @@ public sealed class NotebookRepositoryTests
             X = 10,
             Y = 20,
             Width = 120,
-            Height = 80
+            Height = 80,
+            Rotation = 15,
+            ZIndex = 4
         });
         repository.Save(notebook);
 
@@ -52,6 +54,8 @@ public sealed class NotebookRepositoryTests
         Assert.Equal(Convert.ToBase64String([1, 2, 3, 4]), image.ImageBase64);
         Assert.Equal(10, image.X);
         Assert.Equal(120, image.Width);
+        Assert.Equal(15, image.Rotation);
+        Assert.Equal(4, image.ZIndex);
     }
 
     [Fact]
@@ -72,7 +76,9 @@ public sealed class NotebookRepositoryTests
             IsBold = true,
             IsUnderline = true,
             Foreground = "#2563EB",
-            TextAlignment = "Center"
+            TextAlignment = "Center",
+            Rotation = 30,
+            ZIndex = 5
         });
         repository.Save(notebook);
 
@@ -88,6 +94,8 @@ public sealed class NotebookRepositoryTests
         Assert.True(textBox.IsUnderline);
         Assert.Equal("#2563EB", textBox.Foreground);
         Assert.Equal("Center", textBox.TextAlignment);
+        Assert.Equal(30, textBox.Rotation);
+        Assert.Equal(5, textBox.ZIndex);
     }
 
     [Fact]
@@ -105,6 +113,8 @@ public sealed class NotebookRepositoryTests
             Y = 70,
             Width = 320,
             Height = 160,
+            Rotation = 45,
+            ZIndex = 6,
             Cells = ["A", "B", "C", "D"]
         };
         notebook.Pages[0].Tables.Add(table);
@@ -118,7 +128,48 @@ public sealed class NotebookRepositoryTests
         Assert.Equal(2, loadedTable.Columns);
         Assert.Equal(42, loadedTable.X);
         Assert.Equal(320, loadedTable.Width);
+        Assert.Equal(45, loadedTable.Rotation);
+        Assert.Equal(6, loadedTable.ZIndex);
         Assert.Equal(["A", "B", "C", "D"], loadedTable.Cells);
+    }
+
+    [Fact]
+    public void SaveLoad_RoundTripsCharts()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "ProNotesTests", Guid.NewGuid().ToString("N"));
+        var repository = new NotebookRepository(directory);
+
+        var notebook = repository.Create("Graficas");
+        notebook.Pages[0].Charts.Add(new PageChart
+        {
+            Title = "Notas",
+            Type = PageChartType.Line,
+            X = 55,
+            Y = 66,
+            Width = 420,
+            Height = 260,
+            Rotation = 10,
+            ZIndex = 7,
+            DataPoints =
+            [
+                new ChartDataPoint { Label = "Parcial 1", Value = 4.2 },
+                new ChartDataPoint { Label = "Parcial 2", Value = 4.7 }
+            ]
+        });
+        repository.Save(notebook);
+
+        var summary = Assert.Single(repository.GetSummaries());
+        var loaded = repository.Load(summary.FilePath);
+        var chart = Assert.Single(loaded.Pages[0].Charts);
+
+        Assert.Equal("Notas", chart.Title);
+        Assert.Equal(PageChartType.Line, chart.Type);
+        Assert.Equal(55, chart.X);
+        Assert.Equal(420, chart.Width);
+        Assert.Equal(10, chart.Rotation);
+        Assert.Equal(7, chart.ZIndex);
+        Assert.Equal("Parcial 1", chart.DataPoints[0].Label);
+        Assert.Equal(4.7, chart.DataPoints[1].Value);
     }
 
     [Fact]

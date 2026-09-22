@@ -6,6 +6,7 @@ using System.Windows.Ink;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using CuadernoDigital.App.Controls;
 using CuadernoDigital.App.Models;
 using CuadernoDigital.App.Services;
 
@@ -45,6 +46,9 @@ public partial class PageCanvasView : UserControl
     private Border? selectedTextBoxControl;
     private PageTable? selectedTable;
     private Border? selectedTableControl;
+    private PageChart? selectedChart;
+    private Border? selectedChartControl;
+    private object? objectClipboard;
     private readonly Stack<string> undoStack = new();
     private readonly Stack<string> redoStack = new();
 
@@ -126,7 +130,8 @@ public partial class PageCanvasView : UserControl
             MimeType = GetMimeType(filePath),
             ImageBase64 = Convert.ToBase64String(bytes),
             X = 110,
-            Y = 130
+            Y = 130,
+            ZIndex = GetNextZIndex()
         };
 
         SetInitialImageSize(sticker, bytes);
@@ -148,12 +153,55 @@ public partial class PageCanvasView : UserControl
             Rows = rows,
             Columns = columns,
             Width = Math.Max(220, columns * 120),
-            Height = Math.Max(90, rows * 44)
+            Height = Math.Max(90, rows * 44),
+            ZIndex = GetNextZIndex()
         };
         table.EnsureCellCount();
         CurrentPage.Tables.Add(table);
         RenderObjects();
         SelectTable(table);
+        PageChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void InsertChart(PageChart chart)
+    {
+        if (CurrentPage is null)
+        {
+            return;
+        }
+
+        chart.NormalizeData();
+        chart.ZIndex = GetNextZIndex();
+        CurrentPage.Charts.Add(chart);
+        RenderObjects();
+        SelectChart(chart);
+        PageChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void EditSelectedChart()
+    {
+        if (selectedChart is null)
+        {
+            return;
+        }
+
+        var chart = selectedChart;
+        var dialog = new ChartDataDialog(chart)
+        {
+            Owner = Window.GetWindow(this)
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        chart.Title = dialog.Chart.Title;
+        chart.Type = dialog.Chart.Type;
+        chart.DataPoints = dialog.Chart.DataPoints;
+        chart.NormalizeData();
+        RenderObjects();
+        SelectChart(chart);
         PageChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -238,7 +286,8 @@ public partial class PageCanvasView : UserControl
             X = 110,
             Y = 130,
             Width = Math.Clamp(bitmap.Width, 120, 520),
-            Height = Math.Clamp(bitmap.Height, 90, 420)
+            Height = Math.Clamp(bitmap.Height, 90, 420),
+            ZIndex = GetNextZIndex()
         };
 
         CurrentPage.Images.Add(sticker);
@@ -254,11 +303,76 @@ public partial class PageCanvasView : UserControl
             return;
         }
 
-        var textBox = new PageTextBox();
+        var textBox = new PageTextBox
+        {
+            ZIndex = GetNextZIndex()
+        };
         CurrentPage.TextBoxes.Add(textBox);
         RenderObjects();
         SelectTextBox(textBox);
         PageChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void CopySelectedObject()
+    {
+        objectClipboard = CloneSelectedObject();
+    }
+
+    public void CutSelectedObject()
+    {
+        CopySelectedObject();
+        DeleteSelectedObject();
+    }
+
+    public void PasteObjectOrImage()
+    {
+        if (objectClipboard is not null)
+        {
+            PasteInternalObject();
+            return;
+        }
+
+        InsertImageFromClipboard();
+    }
+
+    public void DuplicateSelectedObject()
+    {
+        var clone = CloneSelectedObject();
+        if (clone is null)
+        {
+            return;
+        }
+
+        objectClipboard = clone;
+        PasteInternalObject();
+    }
+
+    public void BringSelectedObjectToFront()
+    {
+        ApplyToSelectedObject(
+            sticker => sticker.ZIndex = GetNextZIndex(),
+            textBox => textBox.ZIndex = GetNextZIndex(),
+            table => table.ZIndex = GetNextZIndex(),
+            chart => chart.ZIndex = GetNextZIndex());
+    }
+
+    public void SendSelectedObjectToBack()
+    {
+        var zIndex = GetMinZIndex() - 1;
+        ApplyToSelectedObject(
+            sticker => sticker.ZIndex = zIndex,
+            textBox => textBox.ZIndex = zIndex,
+            table => table.ZIndex = zIndex,
+            chart => chart.ZIndex = zIndex);
+    }
+
+    public void RotateSelectedObject(double degrees)
+    {
+        ApplyToSelectedObject(
+            sticker => sticker.Rotation = NormalizeRotation(sticker.Rotation + degrees),
+            textBox => textBox.Rotation = NormalizeRotation(textBox.Rotation + degrees),
+            table => table.Rotation = NormalizeRotation(table.Rotation + degrees),
+            chart => chart.Rotation = NormalizeRotation(chart.Rotation + degrees));
     }
 
     public void Undo()
@@ -346,35 +460,46 @@ public partial class PageCanvasView : UserControl
         selectedTextBoxControl = null;
         selectedTable = null;
         selectedTableControl = null;
+        selectedChart = null;
+        selectedChartControl = null;
 
         if (CurrentPage is null)
         {
             return;
         }
 
-        foreach (var sticker in CurrentPage.Images)
-        {
-            var control = CreateStickerControl(sticker);
-            Canvas.SetLeft(control, sticker.X);
-            Canvas.SetTop(control, sticker.Y);
-            ObjectLayer.Children.Add(control);
-        }
+        var objects = new List<(int ZIndex, int Sequence, object Item)>();
+        var sequence = 0;
+        objects.AddRange(CurrentPage.Images.Select(image => (image.ZIndex, sequence++, (object)image)));
+        objects.AddRange(CurrentPage.TextBoxes.Select(textBox => (textBox.ZIndex, sequence++, (object)textBox)));
+        objects.AddRange(CurrentPage.Tables.Select(table => (table.ZIndex, sequence++, (object)table)));
+        objects.AddRange(CurrentPage.Charts.Select(chart => (chart.ZIndex, sequence++, (object)chart)));
 
-        foreach (var textBox in CurrentPage.TextBoxes)
+        foreach (var item in objects.OrderBy(item => item.ZIndex).ThenBy(item => item.Sequence).Select(item => item.Item))
         {
-            var control = CreateTextBoxControl(textBox);
-            Canvas.SetLeft(control, textBox.X);
-            Canvas.SetTop(control, textBox.Y);
-            ObjectLayer.Children.Add(control);
+            switch (item)
+            {
+                case StickerImage sticker:
+                    AddObjectControl(CreateStickerControl(sticker), sticker.X, sticker.Y);
+                    break;
+                case PageTextBox textBox:
+                    AddObjectControl(CreateTextBoxControl(textBox), textBox.X, textBox.Y);
+                    break;
+                case PageTable table:
+                    AddObjectControl(CreateTableControl(table), table.X, table.Y);
+                    break;
+                case PageChart chart:
+                    AddObjectControl(CreateChartControl(chart), chart.X, chart.Y);
+                    break;
+            }
         }
+    }
 
-        foreach (var table in CurrentPage.Tables)
-        {
-            var control = CreateTableControl(table);
-            Canvas.SetLeft(control, table.X);
-            Canvas.SetTop(control, table.Y);
-            ObjectLayer.Children.Add(control);
-        }
+    private void AddObjectControl(UIElement control, double x, double y)
+    {
+        Canvas.SetLeft(control, x);
+        Canvas.SetTop(control, y);
+        ObjectLayer.Children.Add(control);
     }
 
     private Border CreateStickerControl(StickerImage sticker)
@@ -494,6 +619,8 @@ public partial class PageCanvasView : UserControl
         selectedTextBoxControl = null;
         selectedTable = null;
         selectedTableControl = null;
+        selectedChart = null;
+        selectedChartControl = null;
         selectedSticker = sticker;
         selectedStickerControl = control ?? ObjectLayer.Children
             .OfType<Border>()
@@ -603,7 +730,9 @@ public partial class PageCanvasView : UserControl
             BorderBrush = Brushes.Transparent,
             Background = Brushes.Transparent,
             Child = contentGrid,
-            Tag = pageTextBox
+            Tag = pageTextBox,
+            RenderTransformOrigin = new Point(0.5, 0.5),
+            RenderTransform = new RotateTransform(pageTextBox.Rotation)
         };
 
         border.MouseLeftButtonDown += (_, _) => SelectTextBox(pageTextBox, border);
@@ -622,6 +751,8 @@ public partial class PageCanvasView : UserControl
         selectedStickerControl = null;
         selectedTable = null;
         selectedTableControl = null;
+        selectedChart = null;
+        selectedChartControl = null;
         selectedTextBox = textBox;
         selectedTextBoxControl = control ?? ObjectLayer.Children
             .OfType<Border>()
@@ -759,7 +890,9 @@ public partial class PageCanvasView : UserControl
             BorderBrush = Brushes.Transparent,
             Background = Brushes.Transparent,
             Child = content,
-            Tag = table
+            Tag = table,
+            RenderTransformOrigin = new Point(0.5, 0.5),
+            RenderTransform = new RotateTransform(table.Rotation)
         };
 
         border.MouseLeftButtonDown += (_, _) => SelectTable(table, border);
@@ -778,6 +911,8 @@ public partial class PageCanvasView : UserControl
         selectedStickerControl = null;
         selectedTextBox = null;
         selectedTextBoxControl = null;
+        selectedChart = null;
+        selectedChartControl = null;
         selectedTable = table;
         selectedTableControl = control ?? ObjectLayer.Children
             .OfType<Border>()
@@ -787,6 +922,119 @@ public partial class PageCanvasView : UserControl
         {
             selectedTableControl.BorderBrush = new SolidColorBrush(Color.FromRgb(37, 99, 235));
             SetThumbsVisibility(selectedTableControl, Visibility.Visible);
+        }
+    }
+
+    private Border CreateChartControl(PageChart chart)
+    {
+        chart.NormalizeData();
+
+        var chartVisual = PageChartRenderer.Create(chart);
+        var moveThumb = new Thumb
+        {
+            Width = 16,
+            Height = 16,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+            Cursor = Cursors.SizeAll,
+            Background = new SolidColorBrush(Color.FromRgb(37, 99, 235)),
+            Opacity = 0.9,
+            Visibility = Visibility.Collapsed
+        };
+        moveThumb.DragStarted += (_, _) =>
+        {
+            Focus();
+            SelectChart(chart);
+        };
+        moveThumb.DragDelta += (_, e) =>
+        {
+            chart.X += e.HorizontalChange;
+            chart.Y += e.VerticalChange;
+            if (selectedChartControl is not null)
+            {
+                Canvas.SetLeft(selectedChartControl, chart.X);
+                Canvas.SetTop(selectedChartControl, chart.Y);
+            }
+
+            PageChanged?.Invoke(this, EventArgs.Empty);
+        };
+
+        var resizeThumb = new Thumb
+        {
+            Width = 16,
+            Height = 16,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Bottom,
+            Cursor = Cursors.SizeNWSE,
+            Background = new SolidColorBrush(Color.FromRgb(37, 99, 235)),
+            Opacity = 0.9,
+            Visibility = Visibility.Collapsed
+        };
+        resizeThumb.DragDelta += (_, e) =>
+        {
+            chart.Width = Math.Max(220, chart.Width + e.HorizontalChange);
+            chart.Height = Math.Max(150, chart.Height + e.VerticalChange);
+            if (selectedChartControl is not null)
+            {
+                selectedChartControl.Width = chart.Width;
+                selectedChartControl.Height = chart.Height;
+            }
+
+            PageChanged?.Invoke(this, EventArgs.Empty);
+        };
+
+        var content = new Grid();
+        content.Children.Add(chartVisual);
+        content.Children.Add(moveThumb);
+        content.Children.Add(resizeThumb);
+
+        var border = new Border
+        {
+            Width = chart.Width,
+            Height = chart.Height,
+            BorderThickness = new Thickness(1),
+            BorderBrush = Brushes.Transparent,
+            Background = Brushes.White,
+            Child = content,
+            Tag = chart,
+            RenderTransformOrigin = new Point(0.5, 0.5),
+            RenderTransform = new RotateTransform(chart.Rotation)
+        };
+
+        border.MouseLeftButtonDown += (_, e) =>
+        {
+            SelectChart(chart, border);
+            if (e.ClickCount == 2)
+            {
+                EditSelectedChart();
+            }
+        };
+        border.MouseRightButtonDown += (_, e) =>
+        {
+            SelectChart(chart, border);
+            e.Handled = false;
+        };
+        return border;
+    }
+
+    private void SelectChart(PageChart chart, Border? control = null)
+    {
+        ClearSelectionChrome();
+        selectedSticker = null;
+        selectedStickerControl = null;
+        selectedTextBox = null;
+        selectedTextBoxControl = null;
+        selectedTable = null;
+        selectedTableControl = null;
+        selectedChart = chart;
+        selectedChartControl = control ?? ObjectLayer.Children
+            .OfType<Border>()
+            .FirstOrDefault(child => ReferenceEquals(child.Tag, chart));
+
+        if (selectedChartControl is not null)
+        {
+            selectedChartControl.BorderBrush = new SolidColorBrush(Color.FromRgb(37, 99, 235));
+            SetThumbsVisibility(selectedChartControl, Visibility.Visible);
         }
     }
 
@@ -818,6 +1066,238 @@ public partial class PageCanvasView : UserControl
         PageChanged?.Invoke(this, EventArgs.Empty);
     }
 
+    private object? CloneSelectedObject()
+    {
+        if (selectedSticker is not null)
+        {
+            return CloneSticker(selectedSticker);
+        }
+
+        if (selectedTextBox is not null)
+        {
+            return CloneTextBox(selectedTextBox);
+        }
+
+        if (selectedTable is not null)
+        {
+            return CloneTable(selectedTable);
+        }
+
+        if (selectedChart is not null)
+        {
+            return CloneChart(selectedChart);
+        }
+
+        return null;
+    }
+
+    private void PasteInternalObject()
+    {
+        if (CurrentPage is null || objectClipboard is null)
+        {
+            return;
+        }
+
+        var clone = CloneObject(objectClipboard, 24);
+        switch (clone)
+        {
+            case StickerImage sticker:
+                sticker.ZIndex = GetNextZIndex();
+                CurrentPage.Images.Add(sticker);
+                RenderObjects();
+                SelectSticker(sticker);
+                break;
+            case PageTextBox textBox:
+                textBox.ZIndex = GetNextZIndex();
+                CurrentPage.TextBoxes.Add(textBox);
+                RenderObjects();
+                SelectTextBox(textBox);
+                break;
+            case PageTable table:
+                table.ZIndex = GetNextZIndex();
+                CurrentPage.Tables.Add(table);
+                RenderObjects();
+                SelectTable(table);
+                break;
+            case PageChart chart:
+                chart.ZIndex = GetNextZIndex();
+                CurrentPage.Charts.Add(chart);
+                RenderObjects();
+                SelectChart(chart);
+                break;
+        }
+
+        PageChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private static object CloneObject(object source, double offset)
+    {
+        return source switch
+        {
+            StickerImage sticker => CloneSticker(sticker, offset),
+            PageTextBox textBox => CloneTextBox(textBox, offset),
+            PageTable table => CloneTable(table, offset),
+            PageChart chart => CloneChart(chart, offset),
+            _ => throw new InvalidOperationException("Tipo de objeto no soportado.")
+        };
+    }
+
+    private static StickerImage CloneSticker(StickerImage source, double offset = 0)
+    {
+        return new StickerImage
+        {
+            FileName = source.FileName,
+            MimeType = source.MimeType,
+            ImageBase64 = source.ImageBase64,
+            X = source.X + offset,
+            Y = source.Y + offset,
+            Width = source.Width,
+            Height = source.Height,
+            Rotation = source.Rotation,
+            ZIndex = source.ZIndex
+        };
+    }
+
+    private static PageTextBox CloneTextBox(PageTextBox source, double offset = 0)
+    {
+        return new PageTextBox
+        {
+            Text = source.Text,
+            X = source.X + offset,
+            Y = source.Y + offset,
+            Width = source.Width,
+            Height = source.Height,
+            FontSize = source.FontSize,
+            FontFamily = source.FontFamily,
+            Foreground = source.Foreground,
+            IsBold = source.IsBold,
+            IsItalic = source.IsItalic,
+            IsUnderline = source.IsUnderline,
+            TextAlignment = source.TextAlignment,
+            Rotation = source.Rotation,
+            ZIndex = source.ZIndex
+        };
+    }
+
+    private static PageTable CloneTable(PageTable source, double offset = 0)
+    {
+        return new PageTable
+        {
+            X = source.X + offset,
+            Y = source.Y + offset,
+            Width = source.Width,
+            Height = source.Height,
+            Rows = source.Rows,
+            Columns = source.Columns,
+            FontSize = source.FontSize,
+            Rotation = source.Rotation,
+            ZIndex = source.ZIndex,
+            Cells = source.Cells.ToList()
+        };
+    }
+
+    private static PageChart CloneChart(PageChart source, double offset = 0)
+    {
+        return new PageChart
+        {
+            Title = source.Title,
+            Type = source.Type,
+            X = source.X + offset,
+            Y = source.Y + offset,
+            Width = source.Width,
+            Height = source.Height,
+            Rotation = source.Rotation,
+            ZIndex = source.ZIndex,
+            DataPoints = source.DataPoints
+                .Select(point => new ChartDataPoint { Label = point.Label, Value = point.Value })
+                .ToList()
+        };
+    }
+
+    private void ApplyToSelectedObject(
+        Action<StickerImage> stickerAction,
+        Action<PageTextBox> textBoxAction,
+        Action<PageTable> tableAction,
+        Action<PageChart> chartAction)
+    {
+        switch (selectedSticker, selectedTextBox, selectedTable, selectedChart)
+        {
+            case ({ } sticker, null, null, null):
+                stickerAction(sticker);
+                RenderObjects();
+                SelectSticker(sticker);
+                break;
+            case (null, { } textBox, null, null):
+                textBoxAction(textBox);
+                RenderObjects();
+                SelectTextBox(textBox);
+                break;
+            case (null, null, { } table, null):
+                tableAction(table);
+                RenderObjects();
+                SelectTable(table);
+                break;
+            case (null, null, null, { } chart):
+                chartAction(chart);
+                RenderObjects();
+                SelectChart(chart);
+                break;
+            default:
+                return;
+        }
+
+        PageChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private int GetNextZIndex()
+    {
+        if (CurrentPage is null)
+        {
+            return 1;
+        }
+
+        return EnumerateZIndexes(CurrentPage).DefaultIfEmpty(0).Max() + 1;
+    }
+
+    private int GetMinZIndex()
+    {
+        if (CurrentPage is null)
+        {
+            return 0;
+        }
+
+        return EnumerateZIndexes(CurrentPage).DefaultIfEmpty(0).Min();
+    }
+
+    private static IEnumerable<int> EnumerateZIndexes(NotebookPage page)
+    {
+        foreach (var image in page.Images)
+        {
+            yield return image.ZIndex;
+        }
+
+        foreach (var textBox in page.TextBoxes)
+        {
+            yield return textBox.ZIndex;
+        }
+
+        foreach (var table in page.Tables)
+        {
+            yield return table.ZIndex;
+        }
+
+        foreach (var chart in page.Charts)
+        {
+            yield return chart.ZIndex;
+        }
+    }
+
+    private static double NormalizeRotation(double degrees)
+    {
+        var normalized = degrees % 360;
+        return normalized < 0 ? normalized + 360 : normalized;
+    }
+
     private void ClearSelectionChrome()
     {
         if (selectedStickerControl is not null)
@@ -836,6 +1316,12 @@ public partial class PageCanvasView : UserControl
         {
             selectedTableControl.BorderBrush = Brushes.Transparent;
             SetThumbsVisibility(selectedTableControl, Visibility.Collapsed);
+        }
+
+        if (selectedChartControl is not null)
+        {
+            selectedChartControl.BorderBrush = Brushes.Transparent;
+            SetThumbsVisibility(selectedChartControl, Visibility.Collapsed);
         }
     }
 
@@ -925,6 +1411,32 @@ public partial class PageCanvasView : UserControl
 
     private void PageCanvasView_KeyDown(object sender, KeyEventArgs e)
     {
+        if (Keyboard.FocusedElement is TextBox && !IsTextFormattingShortcut(e))
+        {
+            return;
+        }
+
+        if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.C)
+        {
+            CopySelectedObject();
+            e.Handled = true;
+            return;
+        }
+
+        if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.X)
+        {
+            CutSelectedObject();
+            e.Handled = true;
+            return;
+        }
+
+        if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.D)
+        {
+            DuplicateSelectedObject();
+            e.Handled = true;
+            return;
+        }
+
         if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.B)
         {
             ToggleSelectedTextBold();
@@ -948,7 +1460,7 @@ public partial class PageCanvasView : UserControl
 
         if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.V)
         {
-            InsertImageFromClipboard();
+            PasteObjectOrImage();
             e.Handled = true;
             return;
         }
@@ -962,6 +1474,12 @@ public partial class PageCanvasView : UserControl
         e.Handled = true;
     }
 
+    private static bool IsTextFormattingShortcut(KeyEventArgs e)
+    {
+        return (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control
+            && (e.Key == Key.B || e.Key == Key.I || e.Key == Key.U);
+    }
+
     private void InsertTextMenuItem_Click(object sender, RoutedEventArgs e)
     {
         InsertTextBox();
@@ -972,9 +1490,42 @@ public partial class PageCanvasView : UserControl
         InsertTable();
     }
 
+    private void InsertChartMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new ChartDataDialog
+        {
+            Owner = Window.GetWindow(this)
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            InsertChart(dialog.Chart);
+        }
+    }
+
     private void PasteMenuItem_Click(object sender, RoutedEventArgs e)
     {
-        InsertImageFromClipboard();
+        PasteObjectOrImage();
+    }
+
+    private void CutMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        CutSelectedObject();
+    }
+
+    private void CopyMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        CopySelectedObject();
+    }
+
+    private void DuplicateMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        DuplicateSelectedObject();
+    }
+
+    private void EditChartMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        EditSelectedChart();
     }
 
     private void DeleteSelectedMenuItem_Click(object sender, RoutedEventArgs e)
@@ -982,9 +1533,29 @@ public partial class PageCanvasView : UserControl
         DeleteSelectedObject();
     }
 
-    private void DeleteSelectedObject()
+    private void BringToFrontMenuItem_Click(object sender, RoutedEventArgs e)
     {
-        if (CurrentPage is null || (selectedSticker is null && selectedTextBox is null && selectedTable is null))
+        BringSelectedObjectToFront();
+    }
+
+    private void SendToBackMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        SendSelectedObjectToBack();
+    }
+
+    private void RotateRightMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        RotateSelectedObject(15);
+    }
+
+    private void RotateLeftMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        RotateSelectedObject(-15);
+    }
+
+    public void DeleteSelectedObject()
+    {
+        if (CurrentPage is null || (selectedSticker is null && selectedTextBox is null && selectedTable is null && selectedChart is null))
         {
             return;
         }
@@ -1000,6 +1571,10 @@ public partial class PageCanvasView : UserControl
         else if (selectedTable is not null)
         {
             CurrentPage.Tables.Remove(selectedTable);
+        }
+        else if (selectedChart is not null)
+        {
+            CurrentPage.Charts.Remove(selectedChart);
         }
 
         RenderObjects();

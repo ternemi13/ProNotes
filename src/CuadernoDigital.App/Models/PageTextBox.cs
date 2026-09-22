@@ -15,4 +15,6 @@ public sealed class PageTextBox
     public bool IsItalic { get; set; }
     public bool IsUnderline { get; set; }
     public string TextAlignment { get; set; } = "Left";
+    public double Rotation { get; set; }
+    public int ZIndex { get; set; }
 }

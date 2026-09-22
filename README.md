@@ -1,14 +1,12 @@
 # ProNotes
 
-ProNotes es un cuaderno digital de escritorio para Windows, creado con C#/.NET y WPF. Esta version implementa el nucleo del spec: biblioteca de cuadernos, formato `.cdgz`, paginas, escritura/dibujo con `InkCanvas`, fondos de hoja, herramientas de tinta, zoom, autoguardado, imagenes embebidas, cajas de texto editables con formato y tablas editables.
+ProNotes es un cuaderno digital de escritorio para Windows, creado con C#/.NET y WPF. Esta version implementa el nucleo del spec: biblioteca de cuadernos, formato `.cdgz`, paginas, escritura/dibujo con `InkCanvas`, fondos de hoja, herramientas de tinta, zoom, autoguardado, imagenes embebidas, cajas de texto editables con formato, tablas editables y graficas simples.
 
 ## Requisitos
 
 - Windows 10/11
 - .NET 8 SDK
 - Visual Studio 2022 con workload ".NET desktop development" o CLI `dotnet`
-
-> En esta maquina solo hay runtimes de .NET, no SDK. Para compilar localmente instala el SDK de .NET 8.
 
 ## Ejecutar
 
@@ -36,8 +34,8 @@ dotnet publish .\src\CuadernoDigital.App\CuadernoDigital.App.csproj -c Release -
 
 - Fase 1: cuadernos y paginas, implementada.
 - Fase 2: lienzo de dibujo, fondos, herramientas, zoom y autoguardado, implementada.
-- Fase 3: imagenes embebidas, movibles y redimensionables, implementada parcialmente. Falta recorte.
-- Fase 4: cajas de texto editables con formato y tablas editables, movibles y redimensionables, implementadas parcialmente. Las tablas permiten elegir filas/columnas al insertarlas y modificar filas/columnas despues. Faltan graficas.
+- Fase 3: imagenes embebidas, movibles, redimensionables, rotables, duplicables y ordenables por capas, implementada parcialmente. Falta recorte.
+- Fase 4: cajas de texto editables con formato, tablas editables y graficas simples, movibles, redimensionables, rotables, duplicables y ordenables por capas. Las tablas permiten elegir filas/columnas al insertarlas y modificar filas/columnas despues. Las graficas soportan barras, lineas y circular desde datos ingresados por el usuario.
 - Fase 5: editor de portadas.
 - Fase 6: exportacion PDF con QuestPDF.
 - Fase 7: asistente Gemini con API key protegida localmente.
