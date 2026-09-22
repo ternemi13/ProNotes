@@ -34,7 +34,7 @@ dotnet publish .\src\CuadernoDigital.App\CuadernoDigital.App.csproj -c Release -
 
 - Fase 1: cuadernos y paginas, implementada.
 - Fase 2: lienzo de dibujo, fondos, herramientas, zoom y autoguardado, implementada.
-- Fase 3: imagenes embebidas, movibles, redimensionables, rotables, duplicables y ordenables por capas, implementada parcialmente. Falta recorte.
+- Fase 3: imagenes embebidas, recorte previo a insertar, pegado desde portapapeles, movimiento, redimensionado, rotacion, duplicado y orden por capas, implementada.
 - Fase 4: cajas de texto editables con formato, tablas editables y graficas simples, movibles, redimensionables, rotables, duplicables y ordenables por capas. Las tablas permiten elegir filas/columnas al insertarlas y modificar filas/columnas despues. Las graficas soportan barras, lineas y circular desde datos ingresados por el usuario.
 - Fase 5: editor de portadas implementado desde el menu de tres puntos de cada cuaderno, con titulo, subtitulo, color, acento, imagen de fondo opcional, plantillas, encuadre de imagen y vista previa en la biblioteca.
 - Fase 6: exportacion PDF implementada para pagina actual y cuaderno completo, incluyendo portada y render visual de las paginas.

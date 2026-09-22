@@ -137,21 +137,13 @@ public partial class PageCanvasView : UserControl
         }
 
         var bytes = File.ReadAllBytes(filePath);
-        var sticker = new StickerImage
+        var croppedBytes = CropImageBeforeInsert(bytes);
+        if (croppedBytes is null)
         {
-            FileName = Path.GetFileName(filePath),
-            MimeType = GetMimeType(filePath),
-            ImageBase64 = Convert.ToBase64String(bytes),
-            X = 110,
-            Y = 130,
-            ZIndex = GetNextZIndex()
-        };
+            return;
+        }
 
-        SetInitialImageSize(sticker, bytes);
-        CurrentPage.Images.Add(sticker);
-        RenderObjects();
-        SelectSticker(sticker);
-        PageChanged?.Invoke(this, EventArgs.Empty);
+        InsertImageBytes(croppedBytes, MakeCroppedFileName(Path.GetFileNameWithoutExtension(filePath)), "image/png");
     }
 
     public void InsertTable(int rows = 3, int columns = 3)
@@ -291,22 +283,56 @@ public partial class PageCanvasView : UserControl
         using var stream = new MemoryStream();
         encoder.Save(stream);
 
+        var croppedBytes = CropImageBeforeInsert(stream.ToArray());
+        if (croppedBytes is null)
+        {
+            return;
+        }
+
+        InsertImageBytes(croppedBytes, $"clipboard_{DateTimeOffset.UtcNow:yyyyMMddHHmmss}.png", "image/png");
+    }
+
+    private void InsertImageBytes(byte[] bytes, string fileName, string mimeType)
+    {
+        if (CurrentPage is null)
+        {
+            return;
+        }
+
         var sticker = new StickerImage
         {
-            FileName = $"clipboard_{DateTimeOffset.UtcNow:yyyyMMddHHmmss}.png",
-            MimeType = "image/png",
-            ImageBase64 = Convert.ToBase64String(stream.ToArray()),
+            FileName = fileName,
+            MimeType = mimeType,
+            ImageBase64 = Convert.ToBase64String(bytes),
             X = 110,
             Y = 130,
-            Width = Math.Clamp(bitmap.Width, 120, 520),
-            Height = Math.Clamp(bitmap.Height, 90, 420),
             ZIndex = GetNextZIndex()
         };
 
+        SetInitialImageSize(sticker, bytes);
         CurrentPage.Images.Add(sticker);
         RenderObjects();
         SelectSticker(sticker);
         PageChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private byte[]? CropImageBeforeInsert(byte[] bytes)
+    {
+        try
+        {
+            var bitmap = ImageCropDialog.DecodeImage(bytes);
+            var dialog = new ImageCropDialog(bitmap)
+            {
+                Owner = Window.GetWindow(this)
+            };
+
+            return dialog.ShowDialog() == true ? dialog.CroppedPngBytes : null;
+        }
+        catch
+        {
+            MessageBox.Show(Window.GetWindow(this), "No se pudo leer la imagen seleccionada.", "Imagen no valida", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return null;
+        }
     }
 
     public void InsertTextBox()
@@ -1407,15 +1433,12 @@ public partial class PageCanvasView : UserControl
         sticker.Height = Math.Max(60, frame.Height * scale);
     }
 
-    private static string GetMimeType(string filePath)
+    private static string MakeCroppedFileName(string fileNameWithoutExtension)
     {
-        return Path.GetExtension(filePath).ToLowerInvariant() switch
-        {
-            ".jpg" or ".jpeg" => "image/jpeg",
-            ".bmp" => "image/bmp",
-            ".gif" => "image/gif",
-            _ => "image/png"
-        };
+        var safeName = string.IsNullOrWhiteSpace(fileNameWithoutExtension)
+            ? "imagen"
+            : fileNameWithoutExtension.Trim();
+        return $"{safeName}_recorte.png";
     }
 
     private static TextAlignment ParseTextAlignment(string alignment)
