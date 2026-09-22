@@ -88,16 +88,24 @@
                             </Grid.RowDefinitions>
                             <Border Background="{Binding CoverColor}"
                                     CornerRadius="8,8,0,0">
-                                <StackPanel VerticalAlignment="Center" Margin="18">
-                                    <TextBlock Text="{Binding Title}"
-                                               Foreground="White"
-                                               FontSize="21"
-                                               FontWeight="SemiBold"
-                                               TextWrapping="Wrap" />
-                                    <TextBlock Text="ProNotes"
-                                               Foreground="#DDEBFF"
-                                               Margin="0,8,0,0" />
-                                </StackPanel>
+                                <Grid>
+                                    <Border Width="8"
+                                            HorizontalAlignment="Left"
+                                            Background="{Binding AccentColor}" />
+                                    <StackPanel VerticalAlignment="Center" Margin="22,18,18,18">
+                                        <TextBlock Text="{Binding Title}"
+                                                   Foreground="{Binding TitleColor}"
+                                                   FontSize="21"
+                                                   FontWeight="SemiBold"
+                                                   TextWrapping="Wrap"
+                                                   MaxHeight="78" />
+                                        <TextBlock Text="{Binding Subtitle}"
+                                                   Foreground="{Binding SubtitleColor}"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,8,0,0"
+                                                   MaxHeight="40" />
+                                    </StackPanel>
+                                </Grid>
                             </Border>
                             <StackPanel Grid.Row="1" Margin="14">
                                 <TextBlock Text="{Binding Title}"

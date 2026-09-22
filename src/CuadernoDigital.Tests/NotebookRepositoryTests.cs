@@ -13,6 +13,12 @@ public sealed class NotebookRepositoryTests
         var repository = new NotebookRepository(directory);
 
         var notebook = repository.Create("Calculo II");
+        notebook.Cover.Subtitle = "Segundo semestre";
+        notebook.Cover.BackgroundColor = "#111827";
+        notebook.Cover.AccentColor = "#FACC15";
+        notebook.Cover.TemplateName = "Band";
+        notebook.Cover.BackgroundImageBase64 = Convert.ToBase64String([9, 8, 7]);
+        notebook.Cover.BackgroundImageMimeType = "image/png";
         notebook.Pages[0].InkBase64 = "sample";
         repository.Save(notebook);
 
@@ -20,6 +26,13 @@ public sealed class NotebookRepositoryTests
         var loaded = repository.Load(summary.FilePath);
 
         Assert.Equal("Calculo II", loaded.Title);
+        Assert.Equal("Calculo II", loaded.Cover.Title);
+        Assert.Equal("Segundo semestre", loaded.Cover.Subtitle);
+        Assert.Equal("#111827", loaded.Cover.BackgroundColor);
+        Assert.Equal("#FACC15", loaded.Cover.AccentColor);
+        Assert.Equal("Band", loaded.Cover.TemplateName);
+        Assert.Equal(Convert.ToBase64String([9, 8, 7]), loaded.Cover.BackgroundImageBase64);
+        Assert.Equal("image/png", loaded.Cover.BackgroundImageMimeType);
         Assert.Single(loaded.Pages);
         Assert.Equal("sample", loaded.Pages[0].InkBase64);
     }

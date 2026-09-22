@@ -1,6 +1,7 @@
 <Window x:Class="CuadernoDigital.App.Views.NotebookEditorView"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:CuadernoDigital.App.Views"
         xmlns:models="clr-namespace:CuadernoDigital.App.Models"
         Title="{Binding Notebook.Title}"
         Width="1280"
@@ -136,7 +137,6 @@
         </Border>
 
         <local:PageCanvasView x:Name="CanvasView"
-                              xmlns:local="clr-namespace:CuadernoDigital.App.Views"
                               Grid.Row="1"
                               Grid.Column="1"
                               CurrentPage="{Binding SelectedPage}"
@@ -148,37 +148,43 @@
                 BorderBrush="#D8DEE9"
                 BorderThickness="1,1,0,0"
                 Padding="14">
-            <StackPanel>
-                <TextBlock Text="Pagina"
-                           FontSize="18"
-                           FontWeight="SemiBold"
-                           Margin="4,0,0,10" />
-                <TextBlock Text="Fondo" Margin="4,0,0,2" />
-                <ComboBox ItemsSource="{Binding BackgroundTypes}"
-                          SelectedItem="{Binding SelectedPage.BackgroundType, Mode=TwoWay}"
-                          SelectionChanged="Background_SelectionChanged" />
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <TextBlock Text="Pagina"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Margin="4,0,0,10" />
+                    <TextBlock Text="Fondo" Margin="4,0,0,2" />
+                    <ComboBox ItemsSource="{Binding BackgroundTypes}"
+                              SelectedItem="{Binding SelectedPage.BackgroundType, Mode=TwoWay}"
+                              SelectionChanged="Background_SelectionChanged" />
 
-                <Separator Margin="0,14" />
-                <TextBlock Text="Asistente IA"
-                           FontSize="18"
-                           FontWeight="SemiBold"
-                           Margin="4,0,0,8" />
-                <TextBlock Text="Listo para Fase 7: chat Gemini y revision de pagina."
-                           TextWrapping="Wrap"
-                           Foreground="#64748B"
-                           Margin="4" />
-                <Button Content="Configurar despues" IsEnabled="False" />
+                    <Separator Margin="0,14" />
+                    <local:CoverDesignerView Cover="{Binding Notebook.Cover}"
+                                             CoverChanged="CoverDesigner_CoverChanged" />
 
-                <Separator Margin="0,14" />
-                <TextBlock Text="Objetos"
-                           FontSize="18"
-                           FontWeight="SemiBold"
-                           Margin="4,0,0,8" />
-                <TextBlock Text="Texto, tablas, graficas e imagenes activos. Usa la barra, Ctrl+V o click derecho. Selecciona objetos para mover, duplicar, rotar, ordenar o eliminar."
-                           TextWrapping="Wrap"
-                           Foreground="#64748B"
-                           Margin="4" />
-            </StackPanel>
+                    <Separator Margin="0,14" />
+                    <TextBlock Text="Asistente IA"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Margin="4,0,0,8" />
+                    <TextBlock Text="Listo para Fase 7: chat Gemini y revision de pagina."
+                               TextWrapping="Wrap"
+                               Foreground="#64748B"
+                               Margin="4" />
+                    <Button Content="Configurar despues" IsEnabled="False" />
+
+                    <Separator Margin="0,14" />
+                    <TextBlock Text="Objetos"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Margin="4,0,0,8" />
+                    <TextBlock Text="Texto, tablas, graficas e imagenes activos. Usa la barra, Ctrl+V o click derecho. Selecciona objetos para mover, duplicar, rotar, ordenar o eliminar."
+                               TextWrapping="Wrap"
+                               Foreground="#64748B"
+                               Margin="4" />
+                </StackPanel>
+            </ScrollViewer>
         </Border>
 
         <DockPanel Grid.Row="2"

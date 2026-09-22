@@ -14,6 +14,8 @@ assets/
 
 `metadata.json` contiene los datos globales del cuaderno: id, titulo, portada, fechas y la lista ordenada de paginas.
 
+La portada guarda `backgroundColor`, `accentColor`, `backgroundImageBase64`, `backgroundImageMimeType`, `templateName`, `title` y `subtitle`.
+
 Cada pagina contiene:
 
 - `id`: identificador estable.

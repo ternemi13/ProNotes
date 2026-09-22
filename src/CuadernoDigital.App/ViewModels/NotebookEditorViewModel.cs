@@ -71,6 +71,17 @@ public sealed class NotebookEditorViewModel : ObservableObject
         HasUnsavedChanges = true;
     }
 
+    public void MarkCoverDirty()
+    {
+        if (!string.IsNullOrWhiteSpace(Notebook.Cover.Title))
+        {
+            Notebook.Title = Notebook.Cover.Title.Trim();
+            OnPropertyChanged(nameof(Notebook));
+        }
+
+        MarkDirty();
+    }
+
     public void Save()
     {
         Notebook.Pages = Pages.ToList();
@@ -112,6 +123,7 @@ public sealed class NotebookEditorViewModel : ObservableObject
         }
 
         Notebook.Title = title.Trim();
+        Notebook.Cover.Title = Notebook.Title;
         OnPropertyChanged(nameof(Notebook));
         MarkDirty();
     }

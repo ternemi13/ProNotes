@@ -98,7 +98,6 @@ public sealed class NotebookRepository
     public void Save(Notebook notebook, string? filePath = null)
     {
         notebook.UpdatedAt = DateTimeOffset.UtcNow;
-        notebook.Cover.Title = notebook.Title;
 
         var targetPath = filePath ?? GetNotebookPath(notebook);
         Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);

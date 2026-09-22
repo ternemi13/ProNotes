@@ -39,4 +39,27 @@ public sealed class NotebookEditorViewModelTests
         Assert.Single(viewModel.Pages);
         Assert.NotNull(viewModel.SelectedPage);
     }
+
+    [Fact]
+    public void MarkCoverDirty_SyncsNotebookTitleFromCover()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "ProNotesTests", Guid.NewGuid().ToString("N"));
+        var repository = new NotebookRepository(directory);
+        var notebook = new Notebook
+        {
+            Title = "Viejo",
+            Cover =
+            {
+                Title = "Portada nueva",
+                Subtitle = "Semestre 1"
+            }
+        };
+
+        var viewModel = new NotebookEditorViewModel(repository, notebook, Path.Combine(directory, "notebook.cdgz"));
+
+        viewModel.MarkCoverDirty();
+
+        Assert.Equal("Portada nueva", viewModel.Notebook.Title);
+        Assert.True(viewModel.HasUnsavedChanges);
+    }
 }
