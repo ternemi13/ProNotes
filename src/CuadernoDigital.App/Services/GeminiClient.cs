@@ -125,6 +125,8 @@ public sealed class GeminiClient
             - La pagina mide 900 x 1200. Mantente dentro de esos limites.
             - Para "transcribe", crea bloques de texto limpios y legibles.
             - Para "escribe", crea texto bonito, ordenado y listo para estudiar.
+            - Para "crea", "genera", "redacta", "prepara" o "haz" contenido de estudio, pon el contenido final directamente en textBlocks bien distribuidos en la pagina.
+            - Para ejercicios, problemas, talleres, quiz o actividades, crea una hoja de practica: titulo, instruccion breve y ejercicios numerados completos. No respondas como chat.
             - Para "dibuja", usa inkShapes como trazos reales. Si piden un objeto concreto como carita feliz, casa, sol, corazon, estrella, nube o flor, dibuja ese objeto; no hagas un mapa conceptual ni escribas solo el nombre.
             - Usa textBlocks en dibujos solo si el usuario pidio texto, titulos o etiquetas.
             - Para diagramas/mapas/esquemas, combina rectangulos, flechas, elipses y etiquetas.

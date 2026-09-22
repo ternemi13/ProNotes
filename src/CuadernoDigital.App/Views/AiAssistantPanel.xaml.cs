@@ -494,6 +494,14 @@ public partial class AiAssistantPanel : UserControl
             "traza",
             "plasm",
             "pinta",
+            "redacta ",
+            "redactame",
+            "crea ",
+            "crear ",
+            "genera ",
+            "generame",
+            "prepara ",
+            "preparame",
             "escribe ",
             "escriba ",
             "escribeme",
@@ -522,7 +530,10 @@ public partial class AiAssistantPanel : UserControl
             "organiza en la pagina"
         ];
 
-        return ContainsAny(normalized, keywords) || LooksLikeDrawableRequest(normalized);
+        return ContainsAny(normalized, keywords)
+            || LooksLikeDrawableRequest(normalized)
+            || LooksLikeExerciseRequest(normalized)
+            || LooksLikeStudyContentRequest(normalized);
     }
 
     private static bool NeedsCurrentPageForPageEdit(string prompt, IReadOnlyList<AiRequestAttachment> requestAttachments)
@@ -540,6 +551,8 @@ public partial class AiAssistantPanel : UserControl
             "lee",
             "revisa",
             "corrige",
+            "resuelve",
+            "soluciona",
             "esto",
             "lo que aparece",
             "la imagen",
@@ -562,6 +575,11 @@ public partial class AiAssistantPanel : UserControl
         if (LooksLikeDiagramRequest(normalized))
         {
             return CreateLocalDiagramPlan(title, summary);
+        }
+
+        if (LooksLikeExerciseRequest(normalized))
+        {
+            return CreateLocalExercisePlan(prompt, normalized, summary);
         }
 
         var text = BuildLocalWrittenText(prompt);
@@ -807,6 +825,29 @@ public partial class AiAssistantPanel : UserControl
         };
     }
 
+    private static AiPageEditPlan CreateLocalExercisePlan(string prompt, string normalized, string summary)
+    {
+        var title = BuildExerciseTitle(prompt);
+        var exercises = BuildLocalExerciseList(normalized);
+
+        return new AiPageEditPlan
+        {
+            Summary = summary,
+            TextBlocks =
+            [
+                new() { Text = title, X = 110, Y = 95, Width = 650, Height = 58, FontSize = 28, Foreground = "#1D4ED8", IsBold = true, TextAlignment = "Center" },
+                new() { Text = "Resuelve en orden. Deja procedimiento y revisa tus respuestas al final.", X = 125, Y = 170, Width = 620, Height = 55, FontSize = 18, Foreground = "#334155", HighlightColor = "#E0F2FE", TextAlignment = "Center" },
+                new() { Text = exercises, X = 125, Y = 260, Width = 650, Height = 430, FontSize = 20, Foreground = "#111827", HighlightColor = "#F8FAFC" }
+            ],
+            InkShapes =
+            [
+                new() { Type = "rectangle", X = 105, Y = 80, Width = 690, Height = 640, Stroke = "#2563EB", StrokeWidth = 4 },
+                new() { Type = "line", X = 125, Y = 240, X2 = 775, Y2 = 240, Stroke = "#CBD5E1", StrokeWidth = 3 },
+                new() { Type = "line", X = 125, Y = 700, X2 = 775, Y2 = 700, Stroke = "#CBD5E1", StrokeWidth = 3 }
+            ]
+        };
+    }
+
     private static AiPageEditPlan CreateLocalDiagramPlan(string title, string summary)
     {
         return new AiPageEditPlan
@@ -842,6 +883,13 @@ public partial class AiAssistantPanel : UserControl
             .Replace("hazme", "", StringComparison.OrdinalIgnoreCase)
             .Replace("haz", "", StringComparison.OrdinalIgnoreCase)
             .Replace("has", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("redactame", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("redacta", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("generame", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("genera", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("preparame", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("prepara", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("crea", "", StringComparison.OrdinalIgnoreCase)
             .Replace("escribe en la pagina", "", StringComparison.OrdinalIgnoreCase)
             .Replace("pon en la pagina", "", StringComparison.OrdinalIgnoreCase)
             .Replace("agrega a la pagina", "", StringComparison.OrdinalIgnoreCase)
@@ -870,6 +918,18 @@ public partial class AiAssistantPanel : UserControl
             "transcribe",
             "pasalo a la pagina",
             "pasa esto a la pagina",
+            "redactame",
+            "redacta",
+            "generame",
+            "genera",
+            "preparame",
+            "prepara",
+            "crea",
+            "crear",
+            "hazme",
+            "haz",
+            "has",
+            "dame",
             "escribe",
             "pon",
             "agrega",
@@ -887,6 +947,78 @@ public partial class AiAssistantPanel : UserControl
         return string.IsNullOrWhiteSpace(cleaned)
             ? prompt.Trim()
             : cleaned;
+    }
+
+    private static string BuildExerciseTitle(string prompt)
+    {
+        var title = BuildLocalTitle(prompt)
+            .Replace("un ", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("una ", "", StringComparison.OrdinalIgnoreCase)
+            .Trim();
+
+        return string.IsNullOrWhiteSpace(title)
+            ? "Ejercicios de practica"
+            : title;
+    }
+
+    private static string BuildLocalExerciseList(string normalized)
+    {
+        if (ContainsAnyWord(normalized, "derivada", "derivadas"))
+        {
+            return string.Join(Environment.NewLine,
+                "1. Deriva f(x) = 3x^2 - 5x + 4.",
+                "2. Deriva g(x) = x^3 + 2x^2 - 7x.",
+                "3. Halla la pendiente de y = 4x^2 - 3 en x = 2.",
+                "4. Deriva h(x) = (2x + 1)(x - 5).",
+                "5. Crea una funcion y marca donde su derivada sea positiva.");
+        }
+
+        if (ContainsAnyWord(normalized, "integral", "integrales"))
+        {
+            return string.Join(Environment.NewLine,
+                "1. Calcula la integral de 4x^3 dx.",
+                "2. Calcula la integral de (3x^2 - 2x + 1) dx.",
+                "3. Evalua la integral definida de 2x entre 0 y 5.",
+                "4. Encuentra el area bajo y = x^2 entre 0 y 3.",
+                "5. Explica en una frase que representa una integral definida.");
+        }
+
+        if (ContainsAnyWord(normalized, "ecuacion", "ecuaciones", "algebra"))
+        {
+            return string.Join(Environment.NewLine,
+                "1. Resuelve: 3x + 7 = 25.",
+                "2. Resuelve: 2(x - 4) = 18.",
+                "3. Resuelve: x^2 - 5x + 6 = 0.",
+                "4. Plantea una ecuacion para: el doble de un numero mas 9 es 31.",
+                "5. Verifica una respuesta sustituyendo el valor de x.");
+        }
+
+        if (ContainsAnyWord(normalized, "limite", "limites"))
+        {
+            return string.Join(Environment.NewLine,
+                "1. Calcula: lim x->2 de (x^2 - 4)/(x - 2).",
+                "2. Calcula: lim x->0 de (3x + 1).",
+                "3. Evalua el comportamiento de 1/x cuando x->0+.",
+                "4. Simplifica antes de calcular: (x^2 + 3x)/x.",
+                "5. Escribe con tus palabras que significa un limite.");
+        }
+
+        if (ContainsAnyWord(normalized, "ingles", "english"))
+        {
+            return string.Join(Environment.NewLine,
+                "1. Write 5 sentences using the present simple.",
+                "2. Change 3 sentences from affirmative to negative.",
+                "3. Ask 4 questions using do/does.",
+                "4. Translate 6 classroom objects into English.",
+                "5. Write a short paragraph about your daily routine.");
+        }
+
+        return string.Join(Environment.NewLine,
+            "1. Define el concepto principal con tus propias palabras.",
+            "2. Escribe dos ejemplos y explica por que funcionan.",
+            "3. Resuelve un caso sencillo paso a paso.",
+            "4. Crea una pregunta tipo examen sobre el tema.",
+            "5. Resume en tres lineas lo mas importante.");
     }
 
     private static bool LooksLikeDrawingRequest(string normalized)
@@ -924,9 +1056,87 @@ public partial class AiAssistantPanel : UserControl
         return ContainsAny(normalized, "diagrama", "mapa", "esquema", "linea de tiempo", "organiza");
     }
 
+    private static bool LooksLikeExerciseRequest(string normalized)
+    {
+        if (!ContainsAnyWord(
+                normalized,
+                "ejercicio",
+                "ejercicios",
+                "problema",
+                "problemas",
+                "taller",
+                "quiz",
+                "actividad",
+                "actividades",
+                "practica",
+                "pregunta",
+                "preguntas"))
+        {
+            return false;
+        }
+
+        return ContainsAny(
+            normalized,
+            "haz",
+            "has",
+            "crea",
+            "crear",
+            "genera",
+            "prepara",
+            "escribe",
+            "pon",
+            "agrega",
+            "dame",
+            "inventa",
+            "disena");
+    }
+
+    private static bool LooksLikeStudyContentRequest(string normalized)
+    {
+        if (!ContainsAny(
+                normalized,
+                "haz",
+                "has",
+                "crea",
+                "crear",
+                "genera",
+                "prepara",
+                "redact",
+                "escribe",
+                "pon",
+                "agrega",
+                "dame"))
+        {
+            return false;
+        }
+
+        return ContainsAnyWord(
+                normalized,
+                "resumen",
+                "apunte",
+                "apuntes",
+                "explicacion",
+                "definicion",
+                "concepto",
+                "ejemplo",
+                "ejemplos",
+                "lista",
+                "texto",
+                "parrafo",
+                "ensayo",
+                "cuento",
+                "poema",
+                "titulo",
+                "tabla")
+            || LooksLikeExerciseRequest(normalized)
+            || LooksLikeDiagramRequest(normalized);
+    }
+
     private static bool LooksLikeWritingRequest(string normalized)
     {
-        return ContainsAny(normalized, "escribe", "pon ", "agrega", "anade", "coloca", "inserta", "transcribe");
+        return ContainsAny(normalized, "escribe", "redact", "crea", "genera", "prepara", "pon ", "agrega", "anade", "coloca", "inserta", "transcribe")
+            || LooksLikeExerciseRequest(normalized)
+            || LooksLikeStudyContentRequest(normalized);
     }
 
     private static bool ContainsAny(string text, params string[] keywords)
