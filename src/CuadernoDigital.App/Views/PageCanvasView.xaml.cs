@@ -118,15 +118,35 @@ public partial class PageCanvasView : UserControl
 
     public byte[] RenderPageToPng(NotebookPage page, double scale = 2)
     {
-        CurrentPage = page;
-        Zoom = 1;
-        ClearSelectionChrome();
+        var originalPage = CurrentPage;
+        var originalZoom = Zoom;
+        var changedPageForRender = !ReferenceEquals(originalPage, page);
 
-        PageHost.Measure(new Size(PageHost.Width, PageHost.Height));
-        PageHost.Arrange(new Rect(0, 0, PageHost.Width, PageHost.Height));
-        PageHost.UpdateLayout();
+        try
+        {
+            if (changedPageForRender)
+            {
+                SetCurrentValue(CurrentPageProperty, page);
+            }
 
-        return RenderElementToPng(PageHost, PageHost.Width, PageHost.Height, scale);
+            Zoom = 1;
+            ClearSelection();
+
+            PageHost.Measure(new Size(PageHost.Width, PageHost.Height));
+            PageHost.Arrange(new Rect(0, 0, PageHost.Width, PageHost.Height));
+            PageHost.UpdateLayout();
+
+            return RenderElementToPng(PageHost, PageHost.Width, PageHost.Height, scale);
+        }
+        finally
+        {
+            if (changedPageForRender)
+            {
+                SetCurrentValue(CurrentPageProperty, originalPage);
+            }
+
+            Zoom = originalZoom;
+        }
     }
 
     public void InsertImageFromFile(string filePath)
@@ -351,23 +371,19 @@ public partial class PageCanvasView : UserControl
 
     public void InsertImageFromClipboard()
     {
-        if (CurrentPage is null || !Clipboard.ContainsImage())
+        if (CurrentPage is null)
         {
             return;
         }
 
-        var bitmap = Clipboard.GetImage();
-        if (bitmap is null)
+        var imageBytes = ImageClipboardService.TryGetPngBytesFromClipboard();
+        if (imageBytes is null)
         {
+            MessageBox.Show(Window.GetWindow(this), "No se encontro una imagen compatible en el portapapeles.", "Pegar imagen", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
-        var encoder = new PngBitmapEncoder();
-        encoder.Frames.Add(BitmapFrame.Create(bitmap));
-        using var stream = new MemoryStream();
-        encoder.Save(stream);
-
-        var croppedBytes = CropImageBeforeInsert(stream.ToArray());
+        var croppedBytes = CropImageBeforeInsert(imageBytes);
         if (croppedBytes is null)
         {
             return;
@@ -412,9 +428,9 @@ public partial class PageCanvasView : UserControl
 
             return dialog.ShowDialog() == true ? dialog.CroppedPngBytes : null;
         }
-        catch
+        catch (Exception ex)
         {
-            MessageBox.Show(Window.GetWindow(this), "No se pudo leer la imagen seleccionada.", "Imagen no valida", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(Window.GetWindow(this), $"No se pudo leer la imagen seleccionada.\n\nDetalle: {ex.Message}", "Imagen no valida", MessageBoxButton.OK, MessageBoxImage.Warning);
             return null;
         }
     }
@@ -587,14 +603,7 @@ public partial class PageCanvasView : UserControl
     private void RenderObjects()
     {
         ObjectLayer.Children.Clear();
-        selectedSticker = null;
-        selectedStickerControl = null;
-        selectedTextBox = null;
-        selectedTextBoxControl = null;
-        selectedTable = null;
-        selectedTableControl = null;
-        selectedChart = null;
-        selectedChartControl = null;
+        ClearSelection();
 
         if (CurrentPage is null)
         {
@@ -1465,6 +1474,50 @@ public partial class PageCanvasView : UserControl
             selectedChartControl.BorderBrush = Brushes.Transparent;
             SetThumbsVisibility(selectedChartControl, Visibility.Collapsed);
         }
+    }
+
+    private void ClearSelection()
+    {
+        ClearSelectionChrome();
+        selectedSticker = null;
+        selectedStickerControl = null;
+        selectedTextBox = null;
+        selectedTextBoxControl = null;
+        selectedTable = null;
+        selectedTableControl = null;
+        selectedChart = null;
+        selectedChartControl = null;
+    }
+
+    private void PageHost_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (IsObjectInteraction(e.OriginalSource as DependencyObject))
+        {
+            return;
+        }
+
+        ClearSelection();
+        Focus();
+    }
+
+    private static bool IsObjectInteraction(DependencyObject? source)
+    {
+        while (source is not null)
+        {
+            if (source is FrameworkElement { Tag: StickerImage or PageTextBox or PageTable or PageChart })
+            {
+                return true;
+            }
+
+            if (source is TextBox or Thumb)
+            {
+                return true;
+            }
+
+            source = VisualTreeHelper.GetParent(source);
+        }
+
+        return false;
     }
 
     private static void SetThumbsVisibility(DependencyObject root, Visibility visibility)

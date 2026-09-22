@@ -61,6 +61,7 @@
                   Width="900"
                   Height="1200"
                   Margin="36"
+                  PreviewMouseDown="PageHost_PreviewMouseDown"
                   RenderTransformOrigin="0,0">
                 <Grid.RenderTransform>
                     <ScaleTransform ScaleX="{Binding Zoom, RelativeSource={RelativeSource AncestorType=UserControl}}"

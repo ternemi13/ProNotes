@@ -11,8 +11,8 @@ public partial class ImageCropDialog : Window
 
     public ImageCropDialog(BitmapSource source)
     {
-        InitializeComponent();
         this.source = source;
+        InitializeComponent();
         OriginalImage.Source = source;
         ImageSizeText.Text = $"{source.PixelWidth} x {source.PixelHeight}px";
         ConfigureSliders();
@@ -24,13 +24,10 @@ public partial class ImageCropDialog : Window
     public static BitmapSource DecodeImage(byte[] bytes)
     {
         using var stream = new MemoryStream(bytes);
-        var bitmap = new BitmapImage();
-        bitmap.BeginInit();
-        bitmap.CacheOption = BitmapCacheOption.OnLoad;
-        bitmap.StreamSource = stream;
-        bitmap.EndInit();
-        bitmap.Freeze();
-        return bitmap;
+        var decoder = BitmapDecoder.Create(stream, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
+        var frame = decoder.Frames[0];
+        frame.Freeze();
+        return frame;
     }
 
     private void ConfigureSliders()
@@ -49,7 +46,12 @@ public partial class ImageCropDialog : Window
 
     private void CropSlider_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (isUpdating || CropXSlider is null)
+        if (isUpdating
+            || source is null
+            || CropXSlider is null
+            || CropYSlider is null
+            || CropWidthSlider is null
+            || CropHeightSlider is null)
         {
             return;
         }
