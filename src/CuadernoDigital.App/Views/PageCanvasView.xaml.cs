@@ -38,9 +38,7 @@ public partial class PageCanvasView : UserControl
     private bool isLoading;
     private bool isChangingHistory;
     private bool isDraggingSticker;
-    private bool isDraggingTextBox;
     private Point stickerDragStart;
-    private Point textBoxDragStart;
     private StickerImage? selectedSticker;
     private Border? selectedStickerControl;
     private PageTextBox? selectedTextBox;
@@ -308,7 +306,8 @@ public partial class PageCanvasView : UserControl
             VerticalAlignment = VerticalAlignment.Bottom,
             Cursor = Cursors.SizeNWSE,
             Background = new SolidColorBrush(Color.FromRgb(37, 99, 235)),
-            Opacity = 0.9
+            Opacity = 0.9,
+            Visibility = Visibility.Collapsed
         };
         resizeThumb.DragDelta += (_, e) =>
         {
@@ -341,6 +340,7 @@ public partial class PageCanvasView : UserControl
         };
 
         border.MouseLeftButtonDown += Sticker_MouseLeftButtonDown;
+        border.MouseRightButtonDown += Sticker_MouseRightButtonDown;
         border.MouseMove += Sticker_MouseMove;
         border.MouseLeftButtonUp += Sticker_MouseLeftButtonUp;
         return border;
@@ -389,10 +389,19 @@ public partial class PageCanvasView : UserControl
         e.Handled = true;
     }
 
+    private void Sticker_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is Border border && border.Tag is StickerImage sticker)
+        {
+            Focus();
+            SelectSticker(sticker, border);
+            e.Handled = false;
+        }
+    }
+
     private void SelectSticker(StickerImage sticker, Border? control = null)
     {
-        selectedStickerControl?.SetValue(Border.BorderBrushProperty, Brushes.Transparent);
-        selectedTextBoxControl?.SetValue(Border.BorderBrushProperty, Brushes.Transparent);
+        ClearSelectionChrome();
         selectedTextBox = null;
         selectedTextBoxControl = null;
         selectedSticker = sticker;
@@ -403,31 +412,22 @@ public partial class PageCanvasView : UserControl
         if (selectedStickerControl is not null)
         {
             selectedStickerControl.BorderBrush = new SolidColorBrush(Color.FromRgb(37, 99, 235));
+            SetThumbsVisibility(selectedStickerControl, Visibility.Visible);
         }
     }
 
     private Border CreateTextBoxControl(PageTextBox pageTextBox)
     {
-        var dragHandle = new Border
-        {
-            Height = 18,
-            Background = new SolidColorBrush(Color.FromRgb(226, 232, 240)),
-            Cursor = Cursors.SizeAll
-        };
-        dragHandle.MouseLeftButtonDown += TextBoxHandle_MouseLeftButtonDown;
-        dragHandle.MouseMove += TextBoxHandle_MouseMove;
-        dragHandle.MouseLeftButtonUp += TextBoxHandle_MouseLeftButtonUp;
-
         var editor = new TextBox
         {
             Text = pageTextBox.Text,
             AcceptsReturn = true,
             TextWrapping = TextWrapping.Wrap,
             BorderThickness = new Thickness(0),
-            Background = Brushes.White,
+            Background = Brushes.Transparent,
             Foreground = (Brush)new BrushConverter().ConvertFromString(pageTextBox.Foreground)!,
             FontSize = pageTextBox.FontSize,
-            Padding = new Thickness(8),
+            Padding = new Thickness(4),
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto
         };
         editor.TextChanged += (_, _) =>
@@ -436,6 +436,40 @@ public partial class PageCanvasView : UserControl
             PageChanged?.Invoke(this, EventArgs.Empty);
         };
         editor.GotKeyboardFocus += (_, _) => SelectTextBox(pageTextBox);
+        editor.PreviewMouseRightButtonDown += (_, e) =>
+        {
+            SelectTextBox(pageTextBox);
+            e.Handled = false;
+        };
+
+        var moveThumb = new Thumb
+        {
+            Width = 16,
+            Height = 16,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+            Cursor = Cursors.SizeAll,
+            Background = new SolidColorBrush(Color.FromRgb(37, 99, 235)),
+            Opacity = 0.9,
+            Visibility = Visibility.Collapsed
+        };
+        moveThumb.DragStarted += (_, _) =>
+        {
+            Focus();
+            SelectTextBox(pageTextBox);
+        };
+        moveThumb.DragDelta += (_, e) =>
+        {
+            pageTextBox.X += e.HorizontalChange;
+            pageTextBox.Y += e.VerticalChange;
+            if (selectedTextBoxControl is not null)
+            {
+                Canvas.SetLeft(selectedTextBoxControl, pageTextBox.X);
+                Canvas.SetTop(selectedTextBoxControl, pageTextBox.Y);
+            }
+
+            PageChanged?.Invoke(this, EventArgs.Empty);
+        };
 
         var resizeThumb = new Thumb
         {
@@ -445,7 +479,8 @@ public partial class PageCanvasView : UserControl
             VerticalAlignment = VerticalAlignment.Bottom,
             Cursor = Cursors.SizeNWSE,
             Background = new SolidColorBrush(Color.FromRgb(37, 99, 235)),
-            Opacity = 0.9
+            Opacity = 0.9,
+            Visibility = Visibility.Collapsed
         };
         resizeThumb.DragDelta += (_, e) =>
         {
@@ -462,14 +497,8 @@ public partial class PageCanvasView : UserControl
 
         var contentGrid = new Grid();
         contentGrid.Children.Add(editor);
+        contentGrid.Children.Add(moveThumb);
         contentGrid.Children.Add(resizeThumb);
-
-        var layout = new Grid();
-        layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        layout.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        layout.Children.Add(dragHandle);
-        Grid.SetRow(contentGrid, 1);
-        layout.Children.Add(contentGrid);
 
         var border = new Border
         {
@@ -477,62 +506,23 @@ public partial class PageCanvasView : UserControl
             Height = pageTextBox.Height,
             BorderThickness = new Thickness(1),
             BorderBrush = Brushes.Transparent,
-            Background = Brushes.White,
-            Child = layout,
+            Background = Brushes.Transparent,
+            Child = contentGrid,
             Tag = pageTextBox
         };
 
         border.MouseLeftButtonDown += (_, _) => SelectTextBox(pageTextBox, border);
+        border.MouseRightButtonDown += (_, e) =>
+        {
+            SelectTextBox(pageTextBox, border);
+            e.Handled = false;
+        };
         return border;
-    }
-
-    private void TextBoxHandle_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-    {
-        if (FindParentBorder((DependencyObject)sender) is not { Tag: PageTextBox pageTextBox } border)
-        {
-            return;
-        }
-
-        Focus();
-        SelectTextBox(pageTextBox, border);
-        isDraggingTextBox = true;
-        textBoxDragStart = e.GetPosition(ObjectLayer);
-        ((UIElement)sender).CaptureMouse();
-        e.Handled = true;
-    }
-
-    private void TextBoxHandle_MouseMove(object sender, MouseEventArgs e)
-    {
-        if (!isDraggingTextBox || selectedTextBox is null || selectedTextBoxControl is null)
-        {
-            return;
-        }
-
-        var position = e.GetPosition(ObjectLayer);
-        var delta = position - textBoxDragStart;
-        selectedTextBox.X += delta.X;
-        selectedTextBox.Y += delta.Y;
-        Canvas.SetLeft(selectedTextBoxControl, selectedTextBox.X);
-        Canvas.SetTop(selectedTextBoxControl, selectedTextBox.Y);
-        textBoxDragStart = position;
-        PageChanged?.Invoke(this, EventArgs.Empty);
-    }
-
-    private void TextBoxHandle_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-    {
-        if (sender is UIElement element)
-        {
-            element.ReleaseMouseCapture();
-        }
-
-        isDraggingTextBox = false;
-        e.Handled = true;
     }
 
     private void SelectTextBox(PageTextBox textBox, Border? control = null)
     {
-        selectedStickerControl?.SetValue(Border.BorderBrushProperty, Brushes.Transparent);
-        selectedTextBoxControl?.SetValue(Border.BorderBrushProperty, Brushes.Transparent);
+        ClearSelectionChrome();
         selectedSticker = null;
         selectedStickerControl = null;
         selectedTextBox = textBox;
@@ -543,23 +533,38 @@ public partial class PageCanvasView : UserControl
         if (selectedTextBoxControl is not null)
         {
             selectedTextBoxControl.BorderBrush = new SolidColorBrush(Color.FromRgb(37, 99, 235));
+            SetThumbsVisibility(selectedTextBoxControl, Visibility.Visible);
         }
     }
 
-    private static Border? FindParentBorder(DependencyObject start)
+    private void ClearSelectionChrome()
     {
-        var current = start;
-        while (current is not null)
+        if (selectedStickerControl is not null)
         {
-            if (current is Border border && border.Tag is PageTextBox)
-            {
-                return border;
-            }
-
-            current = VisualTreeHelper.GetParent(current);
+            selectedStickerControl.BorderBrush = Brushes.Transparent;
+            SetThumbsVisibility(selectedStickerControl, Visibility.Collapsed);
         }
 
-        return null;
+        if (selectedTextBoxControl is not null)
+        {
+            selectedTextBoxControl.BorderBrush = Brushes.Transparent;
+            SetThumbsVisibility(selectedTextBoxControl, Visibility.Collapsed);
+        }
+    }
+
+    private static void SetThumbsVisibility(DependencyObject root, Visibility visibility)
+    {
+        var count = VisualTreeHelper.GetChildrenCount(root);
+        for (var index = 0; index < count; index++)
+        {
+            var child = VisualTreeHelper.GetChild(root, index);
+            if (child is Thumb thumb)
+            {
+                thumb.Visibility = visibility;
+            }
+
+            SetThumbsVisibility(child, visibility);
+        }
     }
 
     private static BitmapImage CreateBitmap(string imageBase64)
@@ -622,7 +627,35 @@ public partial class PageCanvasView : UserControl
 
     private void PageCanvasView_KeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Delete || CurrentPage is null || (selectedSticker is null && selectedTextBox is null))
+        if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.V)
+        {
+            InsertImageFromClipboard();
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key != Key.Delete)
+        {
+            return;
+        }
+
+        DeleteSelectedObject();
+        e.Handled = true;
+    }
+
+    private void PasteMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        InsertImageFromClipboard();
+    }
+
+    private void DeleteSelectedMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        DeleteSelectedObject();
+    }
+
+    private void DeleteSelectedObject()
+    {
+        if (CurrentPage is null || (selectedSticker is null && selectedTextBox is null))
         {
             return;
         }
@@ -638,6 +671,5 @@ public partial class PageCanvasView : UserControl
 
         RenderObjects();
         PageChanged?.Invoke(this, EventArgs.Empty);
-        e.Handled = true;
     }
 }

@@ -69,7 +69,7 @@ public partial class NotebookEditorView : Window
         ApplyInkSettings();
     }
 
-    private void Select_Click(object sender, RoutedEventArgs e)
+    private void Cursor_Click(object sender, RoutedEventArgs e)
     {
         currentTool = InkToolMode.Select;
         ApplyInkSettings();
@@ -98,7 +98,7 @@ public partial class NotebookEditorView : Window
         }
     }
 
-    private void PasteImage_Click(object sender, RoutedEventArgs e)
+    private void PasteImage()
     {
         CanvasView.InsertImageFromClipboard();
         currentTool = InkToolMode.Select;
@@ -134,7 +134,7 @@ public partial class NotebookEditorView : Window
         CanvasView.Redo();
     }
 
-    private void Window_KeyDown(object sender, KeyEventArgs e)
+    private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (Keyboard.FocusedElement is TextBox)
         {
@@ -143,7 +143,7 @@ public partial class NotebookEditorView : Window
 
         if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.V)
         {
-            PasteImage_Click(sender, e);
+            PasteImage();
             e.Handled = true;
         }
     }

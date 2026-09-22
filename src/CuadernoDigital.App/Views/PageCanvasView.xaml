@@ -3,6 +3,17 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="clr-namespace:CuadernoDigital.App.Controls"
              Background="#EEF2F7">
+    <UserControl.ContextMenu>
+        <ContextMenu>
+            <MenuItem Header="Pegar"
+                      InputGestureText="Ctrl+V"
+                      Click="PasteMenuItem_Click" />
+            <Separator />
+            <MenuItem Header="Eliminar seleccionado"
+                      InputGestureText="Supr"
+                      Click="DeleteSelectedMenuItem_Click" />
+        </ContextMenu>
+    </UserControl.ContextMenu>
     <Grid>
         <ScrollViewer x:Name="ScrollHost"
                       HorizontalScrollBarVisibility="Auto"
@@ -21,9 +32,9 @@
                         BorderThickness="1" />
                 <controls:PageBackgroundRenderer BackgroundType="{Binding CurrentPage.BackgroundType, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                  IsHitTestVisible="False" />
-                <Canvas x:Name="ObjectLayer" Panel.ZIndex="2" IsHitTestVisible="False" />
+                <Canvas x:Name="ObjectLayer" Panel.ZIndex="1" IsHitTestVisible="False" />
                 <InkCanvas x:Name="InkSurface"
-                           Panel.ZIndex="1"
+                           Panel.ZIndex="2"
                            Background="Transparent"
                            PreviewMouseDown="InkSurface_PreviewInputStart"
                            PreviewStylusDown="InkSurface_PreviewInputStart"
