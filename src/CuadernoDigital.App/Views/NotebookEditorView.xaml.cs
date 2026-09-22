@@ -82,6 +82,13 @@ public partial class NotebookEditorView : Window
         ApplyInkSettings();
     }
 
+    private void InsertTable_Click(object sender, RoutedEventArgs e)
+    {
+        CanvasView.InsertTable();
+        currentTool = InkToolMode.Select;
+        ApplyInkSettings();
+    }
+
     private void InsertImage_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFileDialog
@@ -113,6 +120,59 @@ public partial class NotebookEditorView : Window
         }
     }
 
+    private void Bold_Click(object sender, RoutedEventArgs e)
+    {
+        CanvasView.ToggleSelectedTextBold();
+    }
+
+    private void Italic_Click(object sender, RoutedEventArgs e)
+    {
+        CanvasView.ToggleSelectedTextItalic();
+    }
+
+    private void Underline_Click(object sender, RoutedEventArgs e)
+    {
+        CanvasView.ToggleSelectedTextUnderline();
+    }
+
+    private void TextSize_Changed(object sender, RoutedEventArgs e)
+    {
+        if (CanvasView is null || TextSizeBox?.SelectedItem is not ComboBoxItem item)
+        {
+            return;
+        }
+
+        if (double.TryParse(item.Content?.ToString(), out var fontSize))
+        {
+            CanvasView.SetSelectedTextFontSize(fontSize);
+        }
+    }
+
+    private void TextColor_Changed(object sender, RoutedEventArgs e)
+    {
+        if (CanvasView is null || TextColorBox?.SelectedItem is not ComboBoxItem item || item.Tag is not string color)
+        {
+            return;
+        }
+
+        CanvasView.SetSelectedTextColor(color);
+    }
+
+    private void AlignLeft_Click(object sender, RoutedEventArgs e)
+    {
+        CanvasView.SetSelectedTextAlignment("Left");
+    }
+
+    private void AlignCenter_Click(object sender, RoutedEventArgs e)
+    {
+        CanvasView.SetSelectedTextAlignment("Center");
+    }
+
+    private void AlignRight_Click(object sender, RoutedEventArgs e)
+    {
+        CanvasView.SetSelectedTextAlignment("Right");
+    }
+
     private void ApplyInkSettings()
     {
         var color = Colors.Black;
@@ -136,6 +196,27 @@ public partial class NotebookEditorView : Window
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.B)
+        {
+            CanvasView.ToggleSelectedTextBold();
+            e.Handled = true;
+            return;
+        }
+
+        if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.I)
+        {
+            CanvasView.ToggleSelectedTextItalic();
+            e.Handled = true;
+            return;
+        }
+
+        if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.U)
+        {
+            CanvasView.ToggleSelectedTextUnderline();
+            e.Handled = true;
+            return;
+        }
+
         if (Keyboard.FocusedElement is TextBox)
         {
             return;

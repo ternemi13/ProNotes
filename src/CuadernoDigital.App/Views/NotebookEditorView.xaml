@@ -56,6 +56,7 @@
                 <Button Content="Borrador" Click="Eraser_Click" />
                 <Button Content="Cursor" Click="Cursor_Click" />
                 <Button Content="Texto" Click="InsertText_Click" />
+                <Button Content="Tabla" Click="InsertTable_Click" />
                 <Button Content="Imagen" Click="InsertImage_Click" />
                 <ComboBox x:Name="InkColorBox"
                           Width="118"
@@ -74,6 +75,32 @@
                         Maximum="18"
                         Value="3"
                         ValueChanged="InkSettings_Changed" />
+                <Separator Width="1" Height="24" Margin="8,0" Background="#CBD5E1" />
+                <Button Content="B" FontWeight="Bold" Click="Bold_Click" />
+                <Button Content="I" FontStyle="Italic" Click="Italic_Click" />
+                <Button Content="U" Click="Underline_Click" />
+                <ComboBox x:Name="TextSizeBox"
+                          Width="72"
+                          SelectedIndex="2"
+                          SelectionChanged="TextSize_Changed">
+                    <ComboBoxItem Content="12" />
+                    <ComboBoxItem Content="16" />
+                    <ComboBoxItem Content="18" />
+                    <ComboBoxItem Content="24" />
+                    <ComboBoxItem Content="32" />
+                </ComboBox>
+                <ComboBox x:Name="TextColorBox"
+                          Width="118"
+                          SelectedIndex="0"
+                          SelectionChanged="TextColor_Changed">
+                    <ComboBoxItem Content="Negro" Tag="#111827" />
+                    <ComboBoxItem Content="Azul" Tag="#2563EB" />
+                    <ComboBoxItem Content="Rojo" Tag="#DC2626" />
+                    <ComboBoxItem Content="Verde" Tag="#16A34A" />
+                </ComboBox>
+                <Button Content="Izq" Click="AlignLeft_Click" />
+                <Button Content="Centro" Click="AlignCenter_Click" />
+                <Button Content="Der" Click="AlignRight_Click" />
             </StackPanel>
         </DockPanel>
 
@@ -142,7 +169,7 @@
                            FontSize="18"
                            FontWeight="SemiBold"
                            Margin="4,0,0,8" />
-                <TextBlock Text="Texto e imagenes activos. Usa Texto, Imagen, Ctrl+V o click derecho. Para mover, redimensionar o borrar un objeto, usa Cursor."
+                <TextBlock Text="Texto, tablas e imagenes activos. Usa Texto, Tabla, Imagen, Ctrl+V o click derecho. Para mover, redimensionar o borrar un objeto, usa Cursor."
                            TextWrapping="Wrap"
                            Foreground="#64748B"
                            Margin="4" />

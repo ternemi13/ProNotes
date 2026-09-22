@@ -68,7 +68,11 @@ public sealed class NotebookRepositoryTests
             Y = 44,
             Width = 300,
             Height = 140,
-            FontSize = 20
+            FontSize = 20,
+            IsBold = true,
+            IsUnderline = true,
+            Foreground = "#2563EB",
+            TextAlignment = "Center"
         });
         repository.Save(notebook);
 
@@ -80,5 +84,40 @@ public sealed class NotebookRepositoryTests
         Assert.Equal(33, textBox.X);
         Assert.Equal(300, textBox.Width);
         Assert.Equal(20, textBox.FontSize);
+        Assert.True(textBox.IsBold);
+        Assert.True(textBox.IsUnderline);
+        Assert.Equal("#2563EB", textBox.Foreground);
+        Assert.Equal("Center", textBox.TextAlignment);
+    }
+
+    [Fact]
+    public void SaveLoad_RoundTripsTables()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "ProNotesTests", Guid.NewGuid().ToString("N"));
+        var repository = new NotebookRepository(directory);
+
+        var notebook = repository.Create("Tablas");
+        var table = new PageTable
+        {
+            Rows = 2,
+            Columns = 2,
+            X = 42,
+            Y = 70,
+            Width = 320,
+            Height = 160,
+            Cells = ["A", "B", "C", "D"]
+        };
+        notebook.Pages[0].Tables.Add(table);
+        repository.Save(notebook);
+
+        var summary = Assert.Single(repository.GetSummaries());
+        var loaded = repository.Load(summary.FilePath);
+        var loadedTable = Assert.Single(loaded.Pages[0].Tables);
+
+        Assert.Equal(2, loadedTable.Rows);
+        Assert.Equal(2, loadedTable.Columns);
+        Assert.Equal(42, loadedTable.X);
+        Assert.Equal(320, loadedTable.Width);
+        Assert.Equal(["A", "B", "C", "D"], loadedTable.Cells);
     }
 }

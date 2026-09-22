@@ -43,6 +43,8 @@ public partial class PageCanvasView : UserControl
     private Border? selectedStickerControl;
     private PageTextBox? selectedTextBox;
     private Border? selectedTextBoxControl;
+    private PageTable? selectedTable;
+    private Border? selectedTableControl;
     private readonly Stack<string> undoStack = new();
     private readonly Stack<string> redoStack = new();
 
@@ -132,6 +134,51 @@ public partial class PageCanvasView : UserControl
         RenderObjects();
         SelectSticker(sticker);
         PageChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void InsertTable()
+    {
+        if (CurrentPage is null)
+        {
+            return;
+        }
+
+        var table = new PageTable();
+        table.EnsureCellCount();
+        CurrentPage.Tables.Add(table);
+        RenderObjects();
+        SelectTable(table);
+        PageChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void SetSelectedTextFontSize(double fontSize)
+    {
+        ApplySelectedTextBoxStyle(textBox => textBox.FontSize = Math.Clamp(fontSize, 8, 72));
+    }
+
+    public void SetSelectedTextColor(string color)
+    {
+        ApplySelectedTextBoxStyle(textBox => textBox.Foreground = color);
+    }
+
+    public void ToggleSelectedTextBold()
+    {
+        ApplySelectedTextBoxStyle(textBox => textBox.IsBold = !textBox.IsBold);
+    }
+
+    public void ToggleSelectedTextItalic()
+    {
+        ApplySelectedTextBoxStyle(textBox => textBox.IsItalic = !textBox.IsItalic);
+    }
+
+    public void ToggleSelectedTextUnderline()
+    {
+        ApplySelectedTextBoxStyle(textBox => textBox.IsUnderline = !textBox.IsUnderline);
+    }
+
+    public void SetSelectedTextAlignment(string alignment)
+    {
+        ApplySelectedTextBoxStyle(textBox => textBox.TextAlignment = alignment);
     }
 
     public void InsertImageFromClipboard()
@@ -266,6 +313,8 @@ public partial class PageCanvasView : UserControl
         selectedStickerControl = null;
         selectedTextBox = null;
         selectedTextBoxControl = null;
+        selectedTable = null;
+        selectedTableControl = null;
 
         if (CurrentPage is null)
         {
@@ -285,6 +334,14 @@ public partial class PageCanvasView : UserControl
             var control = CreateTextBoxControl(textBox);
             Canvas.SetLeft(control, textBox.X);
             Canvas.SetTop(control, textBox.Y);
+            ObjectLayer.Children.Add(control);
+        }
+
+        foreach (var table in CurrentPage.Tables)
+        {
+            var control = CreateTableControl(table);
+            Canvas.SetLeft(control, table.X);
+            Canvas.SetTop(control, table.Y);
             ObjectLayer.Children.Add(control);
         }
     }
@@ -404,6 +461,8 @@ public partial class PageCanvasView : UserControl
         ClearSelectionChrome();
         selectedTextBox = null;
         selectedTextBoxControl = null;
+        selectedTable = null;
+        selectedTableControl = null;
         selectedSticker = sticker;
         selectedStickerControl = control ?? ObjectLayer.Children
             .OfType<Border>()
@@ -427,6 +486,11 @@ public partial class PageCanvasView : UserControl
             Background = Brushes.Transparent,
             Foreground = (Brush)new BrushConverter().ConvertFromString(pageTextBox.Foreground)!,
             FontSize = pageTextBox.FontSize,
+            FontFamily = new FontFamily(pageTextBox.FontFamily),
+            FontWeight = pageTextBox.IsBold ? FontWeights.Bold : FontWeights.Normal,
+            FontStyle = pageTextBox.IsItalic ? FontStyles.Italic : FontStyles.Normal,
+            TextDecorations = pageTextBox.IsUnderline ? TextDecorations.Underline : null,
+            TextAlignment = ParseTextAlignment(pageTextBox.TextAlignment),
             Padding = new Thickness(4),
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto
         };
@@ -525,6 +589,8 @@ public partial class PageCanvasView : UserControl
         ClearSelectionChrome();
         selectedSticker = null;
         selectedStickerControl = null;
+        selectedTable = null;
+        selectedTableControl = null;
         selectedTextBox = textBox;
         selectedTextBoxControl = control ?? ObjectLayer.Children
             .OfType<Border>()
@@ -535,6 +601,175 @@ public partial class PageCanvasView : UserControl
             selectedTextBoxControl.BorderBrush = new SolidColorBrush(Color.FromRgb(37, 99, 235));
             SetThumbsVisibility(selectedTextBoxControl, Visibility.Visible);
         }
+    }
+
+    private Border CreateTableControl(PageTable table)
+    {
+        table.EnsureCellCount();
+        var grid = new Grid
+        {
+            Background = Brushes.White
+        };
+
+        for (var row = 0; row < table.Rows; row++)
+        {
+            grid.RowDefinitions.Add(new RowDefinition());
+        }
+
+        for (var column = 0; column < table.Columns; column++)
+        {
+            grid.ColumnDefinitions.Add(new ColumnDefinition());
+        }
+
+        for (var row = 0; row < table.Rows; row++)
+        {
+            for (var column = 0; column < table.Columns; column++)
+            {
+                var index = row * table.Columns + column;
+                var cell = new TextBox
+                {
+                    Text = table.Cells[index],
+                    AcceptsReturn = true,
+                    TextWrapping = TextWrapping.Wrap,
+                    BorderThickness = new Thickness(0),
+                    Background = Brushes.Transparent,
+                    FontSize = table.FontSize,
+                    Padding = new Thickness(6, 4, 6, 4),
+                    VerticalScrollBarVisibility = ScrollBarVisibility.Auto
+                };
+                cell.TextChanged += (_, _) =>
+                {
+                    table.Cells[index] = cell.Text;
+                    PageChanged?.Invoke(this, EventArgs.Empty);
+                };
+                cell.GotKeyboardFocus += (_, _) => SelectTable(table);
+                cell.PreviewMouseRightButtonDown += (_, e) =>
+                {
+                    SelectTable(table);
+                    e.Handled = false;
+                };
+
+                var cellBorder = new Border
+                {
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(148, 163, 184)),
+                    BorderThickness = new Thickness(0.5),
+                    Child = cell
+                };
+                Grid.SetRow(cellBorder, row);
+                Grid.SetColumn(cellBorder, column);
+                grid.Children.Add(cellBorder);
+            }
+        }
+
+        var moveThumb = new Thumb
+        {
+            Width = 16,
+            Height = 16,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+            Cursor = Cursors.SizeAll,
+            Background = new SolidColorBrush(Color.FromRgb(37, 99, 235)),
+            Opacity = 0.9,
+            Visibility = Visibility.Collapsed
+        };
+        moveThumb.DragStarted += (_, _) =>
+        {
+            Focus();
+            SelectTable(table);
+        };
+        moveThumb.DragDelta += (_, e) =>
+        {
+            table.X += e.HorizontalChange;
+            table.Y += e.VerticalChange;
+            if (selectedTableControl is not null)
+            {
+                Canvas.SetLeft(selectedTableControl, table.X);
+                Canvas.SetTop(selectedTableControl, table.Y);
+            }
+
+            PageChanged?.Invoke(this, EventArgs.Empty);
+        };
+
+        var resizeThumb = new Thumb
+        {
+            Width = 16,
+            Height = 16,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Bottom,
+            Cursor = Cursors.SizeNWSE,
+            Background = new SolidColorBrush(Color.FromRgb(37, 99, 235)),
+            Opacity = 0.9,
+            Visibility = Visibility.Collapsed
+        };
+        resizeThumb.DragDelta += (_, e) =>
+        {
+            table.Width = Math.Max(160, table.Width + e.HorizontalChange);
+            table.Height = Math.Max(90, table.Height + e.VerticalChange);
+            if (selectedTableControl is not null)
+            {
+                selectedTableControl.Width = table.Width;
+                selectedTableControl.Height = table.Height;
+            }
+
+            PageChanged?.Invoke(this, EventArgs.Empty);
+        };
+
+        var content = new Grid();
+        content.Children.Add(grid);
+        content.Children.Add(moveThumb);
+        content.Children.Add(resizeThumb);
+
+        var border = new Border
+        {
+            Width = table.Width,
+            Height = table.Height,
+            BorderThickness = new Thickness(1),
+            BorderBrush = Brushes.Transparent,
+            Background = Brushes.Transparent,
+            Child = content,
+            Tag = table
+        };
+
+        border.MouseLeftButtonDown += (_, _) => SelectTable(table, border);
+        border.MouseRightButtonDown += (_, e) =>
+        {
+            SelectTable(table, border);
+            e.Handled = false;
+        };
+        return border;
+    }
+
+    private void SelectTable(PageTable table, Border? control = null)
+    {
+        ClearSelectionChrome();
+        selectedSticker = null;
+        selectedStickerControl = null;
+        selectedTextBox = null;
+        selectedTextBoxControl = null;
+        selectedTable = table;
+        selectedTableControl = control ?? ObjectLayer.Children
+            .OfType<Border>()
+            .FirstOrDefault(child => ReferenceEquals(child.Tag, table));
+
+        if (selectedTableControl is not null)
+        {
+            selectedTableControl.BorderBrush = new SolidColorBrush(Color.FromRgb(37, 99, 235));
+            SetThumbsVisibility(selectedTableControl, Visibility.Visible);
+        }
+    }
+
+    private void ApplySelectedTextBoxStyle(Action<PageTextBox> apply)
+    {
+        if (selectedTextBox is null)
+        {
+            return;
+        }
+
+        var textBox = selectedTextBox;
+        apply(textBox);
+        RenderObjects();
+        SelectTextBox(textBox);
+        PageChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void ClearSelectionChrome()
@@ -549,6 +784,12 @@ public partial class PageCanvasView : UserControl
         {
             selectedTextBoxControl.BorderBrush = Brushes.Transparent;
             SetThumbsVisibility(selectedTextBoxControl, Visibility.Collapsed);
+        }
+
+        if (selectedTableControl is not null)
+        {
+            selectedTableControl.BorderBrush = Brushes.Transparent;
+            SetThumbsVisibility(selectedTableControl, Visibility.Collapsed);
         }
     }
 
@@ -604,6 +845,17 @@ public partial class PageCanvasView : UserControl
         };
     }
 
+    private static TextAlignment ParseTextAlignment(string alignment)
+    {
+        return alignment switch
+        {
+            "Center" => TextAlignment.Center,
+            "Right" => TextAlignment.Right,
+            "Justify" => TextAlignment.Justify,
+            _ => TextAlignment.Left
+        };
+    }
+
     private void InkSurface_StrokeCollected(object sender, InkCanvasStrokeCollectedEventArgs e)
     {
         PageChanged?.Invoke(this, EventArgs.Empty);
@@ -627,6 +879,27 @@ public partial class PageCanvasView : UserControl
 
     private void PageCanvasView_KeyDown(object sender, KeyEventArgs e)
     {
+        if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.B)
+        {
+            ToggleSelectedTextBold();
+            e.Handled = true;
+            return;
+        }
+
+        if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.I)
+        {
+            ToggleSelectedTextItalic();
+            e.Handled = true;
+            return;
+        }
+
+        if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.U)
+        {
+            ToggleSelectedTextUnderline();
+            e.Handled = true;
+            return;
+        }
+
         if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.V)
         {
             InsertImageFromClipboard();
@@ -643,6 +916,16 @@ public partial class PageCanvasView : UserControl
         e.Handled = true;
     }
 
+    private void InsertTextMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        InsertTextBox();
+    }
+
+    private void InsertTableMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        InsertTable();
+    }
+
     private void PasteMenuItem_Click(object sender, RoutedEventArgs e)
     {
         InsertImageFromClipboard();
@@ -655,7 +938,7 @@ public partial class PageCanvasView : UserControl
 
     private void DeleteSelectedObject()
     {
-        if (CurrentPage is null || (selectedSticker is null && selectedTextBox is null))
+        if (CurrentPage is null || (selectedSticker is null && selectedTextBox is null && selectedTable is null))
         {
             return;
         }
@@ -668,8 +951,92 @@ public partial class PageCanvasView : UserControl
         {
             CurrentPage.TextBoxes.Remove(selectedTextBox);
         }
+        else if (selectedTable is not null)
+        {
+            CurrentPage.Tables.Remove(selectedTable);
+        }
 
         RenderObjects();
+        PageChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void AddTableRowMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        var table = selectedTable;
+        if (table is null)
+        {
+            return;
+        }
+
+        table.Rows++;
+        table.EnsureCellCount();
+        RenderObjects();
+        SelectTable(table);
+        PageChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void AddTableColumnMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        var table = selectedTable;
+        if (table is null)
+        {
+            return;
+        }
+
+        var oldColumns = table.Columns;
+        var oldCells = table.Cells.ToList();
+        table.Columns++;
+        table.Cells.Clear();
+        for (var row = 0; row < table.Rows; row++)
+        {
+            for (var column = 0; column < table.Columns; column++)
+            {
+                table.Cells.Add(column < oldColumns ? oldCells[row * oldColumns + column] : string.Empty);
+            }
+        }
+
+        RenderObjects();
+        SelectTable(table);
+        PageChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void RemoveTableRowMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        var table = selectedTable;
+        if (table is null || table.Rows <= 1)
+        {
+            return;
+        }
+
+        table.Rows--;
+        table.EnsureCellCount();
+        RenderObjects();
+        SelectTable(table);
+        PageChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void RemoveTableColumnMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        var table = selectedTable;
+        if (table is null || table.Columns <= 1)
+        {
+            return;
+        }
+
+        var oldColumns = table.Columns;
+        var oldCells = table.Cells.ToList();
+        table.Columns--;
+        table.Cells.Clear();
+        for (var row = 0; row < table.Rows; row++)
+        {
+            for (var column = 0; column < table.Columns; column++)
+            {
+                table.Cells.Add(oldCells[row * oldColumns + column]);
+            }
+        }
+
+        RenderObjects();
+        SelectTable(table);
         PageChanged?.Invoke(this, EventArgs.Empty);
     }
 }

@@ -9,5 +9,10 @@ public sealed class PageTextBox
     public double Width { get; set; } = 260;
     public double Height { get; set; } = 120;
     public double FontSize { get; set; } = 18;
+    public string FontFamily { get; set; } = "Segoe UI";
     public string Foreground { get; set; } = "#111827";
+    public bool IsBold { get; set; }
+    public bool IsItalic { get; set; }
+    public bool IsUnderline { get; set; }
+    public string TextAlignment { get; set; } = "Left";
 }

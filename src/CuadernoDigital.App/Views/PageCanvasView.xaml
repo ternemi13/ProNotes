@@ -5,6 +5,11 @@
              Background="#EEF2F7">
     <UserControl.ContextMenu>
         <ContextMenu>
+            <MenuItem Header="Insertar texto"
+                      Click="InsertTextMenuItem_Click" />
+            <MenuItem Header="Insertar tabla"
+                      Click="InsertTableMenuItem_Click" />
+            <Separator />
             <MenuItem Header="Pegar"
                       InputGestureText="Ctrl+V"
                       Click="PasteMenuItem_Click" />
@@ -12,6 +17,15 @@
             <MenuItem Header="Eliminar seleccionado"
                       InputGestureText="Supr"
                       Click="DeleteSelectedMenuItem_Click" />
+            <Separator />
+            <MenuItem Header="Agregar fila a tabla"
+                      Click="AddTableRowMenuItem_Click" />
+            <MenuItem Header="Agregar columna a tabla"
+                      Click="AddTableColumnMenuItem_Click" />
+            <MenuItem Header="Quitar ultima fila"
+                      Click="RemoveTableRowMenuItem_Click" />
+            <MenuItem Header="Quitar ultima columna"
+                      Click="RemoveTableColumnMenuItem_Click" />
         </ContextMenu>
     </UserControl.ContextMenu>
     <Grid>
