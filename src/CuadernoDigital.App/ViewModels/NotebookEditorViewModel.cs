@@ -16,13 +16,19 @@ public sealed class NotebookEditorViewModel : ObservableObject
         this.repository = repository;
         Notebook = notebook;
         FilePath = filePath;
+        if (notebook.Pages.Count == 0)
+        {
+            notebook.Pages.Add(new NotebookPage { Title = "Pagina 1" });
+        }
+
         Pages = new ObservableCollection<NotebookPage>(notebook.Pages);
-        SelectedPage = Pages.FirstOrDefault();
 
         AddPageCommand = new RelayCommand(_ => AddPage());
         DeletePageCommand = new RelayCommand(_ => DeleteSelectedPage(), _ => SelectedPage is not null && Pages.Count > 1);
         SaveCommand = new RelayCommand(_ => Save());
         RenameCommand = new RelayCommand(_ => RenameNotebook());
+
+        SelectedPage = Pages.FirstOrDefault();
     }
 
     public Notebook Notebook { get; }
@@ -44,7 +50,7 @@ public sealed class NotebookEditorViewModel : ObservableObject
         {
             if (SetProperty(ref selectedPage, value))
             {
-                ((RelayCommand)DeletePageCommand).RaiseCanExecuteChanged();
+                (DeletePageCommand as RelayCommand)?.RaiseCanExecuteChanged();
             }
         }
     }
