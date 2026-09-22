@@ -22,6 +22,9 @@ public enum InkToolMode
 
 public partial class PageCanvasView : UserControl
 {
+    private const double PageWidth = 900;
+    private const double PageHeight = 1200;
+
     public static readonly DependencyProperty CurrentPageProperty =
         DependencyProperty.Register(
             nameof(CurrentPage),
@@ -469,6 +472,63 @@ public partial class PageCanvasView : UserControl
         CurrentPage.TextBoxes.Add(textBox);
         RenderObjects();
         SelectTextBox(textBox);
+        PageChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void ApplyAiPageEdit(AiPageEditPlan plan)
+    {
+        if (CurrentPage is null)
+        {
+            return;
+        }
+
+        PageTextBox? firstTextBox = null;
+        foreach (var block in plan.TextBlocks.Take(10))
+        {
+            if (string.IsNullOrWhiteSpace(block.Text))
+            {
+                continue;
+            }
+
+            var textBox = new PageTextBox
+            {
+                Text = block.Text.Trim(),
+                X = ClampToPage(block.X, 0, PageWidth - 80),
+                Y = ClampToPage(block.Y, 0, PageHeight - 50),
+                Width = ClampToPage(block.Width, 120, PageWidth),
+                Height = ClampToPage(block.Height, 60, PageHeight),
+                FontSize = ClampToPage(block.FontSize, 10, 48),
+                FontFamily = string.IsNullOrWhiteSpace(block.FontFamily) ? "Segoe UI" : block.FontFamily.Trim(),
+                Foreground = NormalizeColor(block.Foreground, "#111827"),
+                HighlightColor = NormalizeColor(block.HighlightColor, "Transparent"),
+                IsBold = block.IsBold,
+                IsItalic = block.IsItalic,
+                IsUnderline = block.IsUnderline,
+                TextAlignment = ParseAiTextAlignment(block.TextAlignment),
+                ZIndex = GetNextZIndex()
+            };
+
+            CurrentPage.TextBoxes.Add(textBox);
+            firstTextBox ??= textBox;
+        }
+
+        var addedInk = false;
+        foreach (var shape in plan.InkShapes.Take(28))
+        {
+            addedInk |= AddAiInkShape(shape);
+        }
+
+        if (addedInk)
+        {
+            CurrentPage.InkBase64 = PageSerializer.SerializeStrokes(InkSurface.Strokes);
+        }
+
+        RenderObjects();
+        if (firstTextBox is not null)
+        {
+            SelectTextBox(firstTextBox);
+        }
+
         PageChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -1605,6 +1665,191 @@ public partial class PageCanvasView : UserControl
             "Right" => TextAlignment.Right,
             "Justify" => TextAlignment.Justify,
             _ => TextAlignment.Left
+        };
+    }
+
+    private bool AddAiInkShape(AiPageInkShape shape)
+    {
+        var strokeColor = ParseColor(shape.Stroke, Color.FromRgb(37, 99, 235));
+        var strokeWidth = ClampToPage(shape.StrokeWidth, 1.5, 16);
+        var type = shape.Type.Trim().ToLowerInvariant();
+
+        return type switch
+        {
+            "arrow" => AddAiArrow(shape, strokeColor, strokeWidth),
+            "rectangle" or "rect" => AddAiRectangle(shape, strokeColor, strokeWidth),
+            "ellipse" or "circle" => AddAiEllipse(shape, strokeColor, strokeWidth),
+            "path" => AddAiPath(shape, strokeColor, strokeWidth),
+            _ => AddAiLine(shape, strokeColor, strokeWidth)
+        };
+    }
+
+    private bool AddAiLine(AiPageInkShape shape, Color color, double width)
+    {
+        var start = ClampPoint(new Point(shape.X, shape.Y));
+        var end = ClampPoint(new Point(ResolveX2(shape), ResolveY2(shape)));
+        return AddStroke([start, end], color, width);
+    }
+
+    private bool AddAiArrow(AiPageInkShape shape, Color color, double width)
+    {
+        var start = ClampPoint(new Point(shape.X, shape.Y));
+        var end = ClampPoint(new Point(ResolveX2(shape), ResolveY2(shape)));
+        if (!AddStroke([start, end], color, width))
+        {
+            return false;
+        }
+
+        var angle = Math.Atan2(end.Y - start.Y, end.X - start.X);
+        var headLength = Math.Clamp(width * 4, 10, 28);
+        var left = new Point(
+            end.X - headLength * Math.Cos(angle - Math.PI / 6),
+            end.Y - headLength * Math.Sin(angle - Math.PI / 6));
+        var right = new Point(
+            end.X - headLength * Math.Cos(angle + Math.PI / 6),
+            end.Y - headLength * Math.Sin(angle + Math.PI / 6));
+        AddStroke([end, ClampPoint(left)], color, width);
+        AddStroke([end, ClampPoint(right)], color, width);
+        return true;
+    }
+
+    private bool AddAiRectangle(AiPageInkShape shape, Color color, double width)
+    {
+        var x = ClampToPage(shape.X, 0, PageWidth);
+        var y = ClampToPage(shape.Y, 0, PageHeight);
+        var w = ClampToPage(shape.Width, 24, PageWidth - x);
+        var h = ClampToPage(shape.Height, 24, PageHeight - y);
+        return AddStroke(
+            [
+                new Point(x, y),
+                new Point(x + w, y),
+                new Point(x + w, y + h),
+                new Point(x, y + h),
+                new Point(x, y)
+            ],
+            color,
+            width);
+    }
+
+    private bool AddAiEllipse(AiPageInkShape shape, Color color, double width)
+    {
+        var x = ClampToPage(shape.X, 0, PageWidth);
+        var y = ClampToPage(shape.Y, 0, PageHeight);
+        var w = ClampToPage(shape.Width, 24, PageWidth - x);
+        var h = ClampToPage(shape.Height, 24, PageHeight - y);
+        var centerX = x + w / 2;
+        var centerY = y + h / 2;
+        var points = new List<Point>();
+        for (var index = 0; index <= 48; index++)
+        {
+            var radians = 2 * Math.PI * index / 48;
+            points.Add(ClampPoint(new Point(
+                centerX + Math.Cos(radians) * w / 2,
+                centerY + Math.Sin(radians) * h / 2)));
+        }
+
+        return AddStroke(points, color, width);
+    }
+
+    private bool AddAiPath(AiPageInkShape shape, Color color, double width)
+    {
+        var points = shape.Points
+            .Select(point => ClampPoint(new Point(point.X, point.Y)))
+            .ToList();
+        return AddStroke(points, color, width);
+    }
+
+    private bool AddStroke(IReadOnlyList<Point> points, Color color, double width)
+    {
+        if (points.Count < 2)
+        {
+            return false;
+        }
+
+        var stylusPoints = new StylusPointCollection(points.Select(point => new StylusPoint(point.X, point.Y)));
+        var stroke = new Stroke(stylusPoints)
+        {
+            DrawingAttributes = new DrawingAttributes
+            {
+                Color = color,
+                Width = width,
+                Height = width,
+                FitToCurve = true,
+                StylusTip = StylusTip.Ellipse
+            }
+        };
+
+        InkSurface.Strokes.Add(stroke);
+        return true;
+    }
+
+    private static Point ClampPoint(Point point)
+    {
+        return new Point(
+            ClampToPage(point.X, 0, PageWidth),
+            ClampToPage(point.Y, 0, PageHeight));
+    }
+
+    private static double ResolveX2(AiPageInkShape shape)
+    {
+        return Math.Abs(shape.X2) > 0.001 ? shape.X2 : shape.X + shape.Width;
+    }
+
+    private static double ResolveY2(AiPageInkShape shape)
+    {
+        return Math.Abs(shape.Y2) > 0.001 ? shape.Y2 : shape.Y + shape.Height;
+    }
+
+    private static double ClampToPage(double value, double min, double max)
+    {
+        if (double.IsNaN(value) || double.IsInfinity(value))
+        {
+            return min;
+        }
+
+        return Math.Clamp(value, min, Math.Max(min, max));
+    }
+
+    private static string NormalizeColor(string? color, string fallback)
+    {
+        if (string.Equals(color, "Transparent", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Transparent";
+        }
+
+        try
+        {
+            _ = ColorConverter.ConvertFromString(string.IsNullOrWhiteSpace(color) ? fallback : color);
+            return string.IsNullOrWhiteSpace(color) ? fallback : color.Trim();
+        }
+        catch
+        {
+            return fallback;
+        }
+    }
+
+    private static Color ParseColor(string? color, Color fallback)
+    {
+        try
+        {
+            return string.IsNullOrWhiteSpace(color)
+                ? fallback
+                : (Color)ColorConverter.ConvertFromString(color)!;
+        }
+        catch
+        {
+            return fallback;
+        }
+    }
+
+    private static string ParseAiTextAlignment(string alignment)
+    {
+        return alignment switch
+        {
+            "Center" or "center" => "Center",
+            "Right" or "right" => "Right",
+            "Justify" or "justify" => "Justify",
+            _ => "Left"
         };
     }
 

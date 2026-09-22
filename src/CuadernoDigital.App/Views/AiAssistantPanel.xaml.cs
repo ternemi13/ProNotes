@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -21,6 +22,7 @@ public partial class AiAssistantPanel : UserControl
     private Notebook? notebook;
     private Func<byte[]?>? captureCurrentPage;
     private Action<string>? insertTextIntoPage;
+    private Action<AiPageEditPlan>? applyPageEditToPage;
     private bool isBusy;
 
     public event EventHandler? ChatChanged;
@@ -33,11 +35,12 @@ public partial class AiAssistantPanel : UserControl
         UpdateStatus();
     }
 
-    public void Configure(Notebook activeNotebook, Func<byte[]?> pageCapture, Action<string> insertText)
+    public void Configure(Notebook activeNotebook, Func<byte[]?> pageCapture, Action<string> insertText, Action<AiPageEditPlan> applyPageEdit)
     {
         notebook = activeNotebook;
         captureCurrentPage = pageCapture;
         insertTextIntoPage = insertText;
+        applyPageEditToPage = applyPageEdit;
         messages.Clear();
 
         foreach (var message in activeNotebook.AiChatHistory)
@@ -104,12 +107,20 @@ public partial class AiAssistantPanel : UserControl
 
         var history = messages.ToList();
         var requestAttachments = attachments.ToList();
-        var pagePng = ShouldIncludeCurrentPage(prompt) ? captureCurrentPage?.Invoke() : null;
+        var shouldEditPage = ShouldApplyPageEdit(prompt);
+        var pagePng = (shouldEditPage || ShouldIncludeCurrentPage(prompt)) ? captureCurrentPage?.Invoke() : null;
         var shouldInsertIntoNotebook = ShouldInsertAnswerIntoNotebook(prompt);
 
         AddMessage("user", BuildUserMessage(prompt, requestAttachments, pagePng is not null));
         PromptBox.Clear();
         attachments.Clear();
+
+        if (shouldEditPage)
+        {
+            await SendPageEditAsync(() => client.AskForPageEditAsync(apiKey, prompt, history, requestAttachments, pagePng));
+            return;
+        }
+
         await SendAsync(() => client.AskAsync(apiKey, prompt, history, requestAttachments, pagePng), shouldInsertIntoNotebook);
     }
 
@@ -184,6 +195,43 @@ public partial class AiAssistantPanel : UserControl
             {
                 UpdateStatus();
             }
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = ex.Message;
+        }
+        finally
+        {
+            SetBusy(false);
+        }
+    }
+
+    private async Task SendPageEditAsync(Func<Task<string>> operation)
+    {
+        if (isBusy)
+        {
+            return;
+        }
+
+        SetBusy(true);
+        try
+        {
+            var answer = await operation();
+            var plan = ParsePageEditPlan(answer);
+            if (plan is null || (plan.TextBlocks.Count == 0 && plan.InkShapes.Count == 0))
+            {
+                var fallbackText = string.IsNullOrWhiteSpace(answer)
+                    ? "Gemini no devolvio un plan visual aplicable."
+                    : answer.Trim();
+                AddMessage("assistant", fallbackText);
+                insertTextIntoPage?.Invoke(fallbackText);
+                StatusText.Text = "Gemini no devolvio un plan visual; inserte la respuesta como texto.";
+                return;
+            }
+
+            applyPageEditToPage?.Invoke(plan);
+            AddMessage("assistant", string.IsNullOrWhiteSpace(plan.Summary) ? "Listo. Agregue el contenido a la pagina." : plan.Summary.Trim());
+            StatusText.Text = "Gemini edito la pagina actual.";
         }
         catch (Exception ex)
         {
@@ -305,23 +353,58 @@ public partial class AiAssistantPanel : UserControl
 
     private void AddImageFromClipboard()
     {
-        var bitmap = Clipboard.GetImage();
-        if (bitmap is null)
+        var bytes = ImageClipboardService.TryGetPngBytesFromClipboard();
+        if (bytes is null)
         {
             return;
         }
 
-        var encoder = new PngBitmapEncoder();
-        encoder.Frames.Add(BitmapFrame.Create(bitmap));
-        using var stream = new MemoryStream();
-        encoder.Save(stream);
         attachments.Add(new AiRequestAttachment
         {
             Name = $"pegado_{DateTimeOffset.Now:HHmmss}.png",
             MimeType = "image/png",
-            Data = stream.ToArray()
+            Data = bytes
         });
         StatusText.Text = "Imagen pegada como adjunto.";
+    }
+
+    private static AiPageEditPlan? ParsePageEditPlan(string raw)
+    {
+        var json = ExtractJsonObject(raw);
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<AiPageEditPlan>(
+                json,
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true,
+                    ReadCommentHandling = JsonCommentHandling.Skip,
+                    AllowTrailingCommas = true
+                });
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string? ExtractJsonObject(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return null;
+        }
+
+        var start = raw.IndexOf('{');
+        var end = raw.LastIndexOf('}');
+        return start >= 0 && end > start
+            ? raw[start..(end + 1)]
+            : null;
     }
 
     private static string BuildUserMessage(string prompt, IReadOnlyList<AiRequestAttachment> requestAttachments, bool includesPage)
@@ -377,6 +460,37 @@ public partial class AiAssistantPanel : UserControl
             "en mi cuaderno",
             "edita lo que escribi",
             "corrige la ortografia"
+        ];
+
+        return keywords.Any(normalized.Contains);
+    }
+
+    private static bool ShouldApplyPageEdit(string prompt)
+    {
+        var normalized = prompt.ToLowerInvariant();
+        string[] keywords =
+        [
+            "dibuja",
+            "dibuje",
+            "dibujame",
+            "haz un dibujo",
+            "hazme un dibujo",
+            "draw",
+            "escribe en la pagina",
+            "escribe en mi cuaderno",
+            "pon en la pagina",
+            "agrega a la pagina",
+            "anade a la pagina",
+            "transcribe",
+            "transcribir",
+            "pasalo a la pagina",
+            "pasa esto a la pagina",
+            "haz un diagrama",
+            "hazme un diagrama",
+            "mapa conceptual",
+            "esquema visual",
+            "linea de tiempo",
+            "organiza en la pagina"
         ];
 
         return keywords.Any(normalized.Contains);
