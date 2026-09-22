@@ -58,6 +58,35 @@ public partial class AiAssistantPanel : UserControl
         }
     }
 
+    public void FocusPrompt()
+    {
+        PromptBox.Focus();
+    }
+
+    public void ConfigureApiKey()
+    {
+        var owner = Window.GetWindow(this);
+        var dialog = new GeminiApiKeyDialog(settings.HasApiKey)
+        {
+            Owner = owner
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        if (dialog.ShouldClear)
+        {
+            settings.ClearApiKey();
+            StatusText.Text = "Clave quitada. El asistente queda pausado hasta configurar una nueva.";
+            return;
+        }
+
+        settings.SaveApiKey(dialog.ApiKey);
+        StatusText.Text = "Clave guardada localmente y cifrada para este usuario de Windows.";
+    }
+
     private async void Send_Click(object sender, RoutedEventArgs e)
     {
         var prompt = PromptBox.Text.Trim();
@@ -82,30 +111,6 @@ public partial class AiAssistantPanel : UserControl
         PromptBox.Clear();
         attachments.Clear();
         await SendAsync(() => client.AskAsync(apiKey, prompt, history, requestAttachments, pagePng), shouldInsertIntoNotebook);
-    }
-
-    private void ConfigureKey_Click(object sender, RoutedEventArgs e)
-    {
-        var owner = Window.GetWindow(this);
-        var dialog = new GeminiApiKeyDialog(settings.HasApiKey)
-        {
-            Owner = owner
-        };
-
-        if (dialog.ShowDialog() != true)
-        {
-            return;
-        }
-
-        if (dialog.ShouldClear)
-        {
-            settings.ClearApiKey();
-            StatusText.Text = "Clave quitada. El asistente queda pausado hasta configurar una nueva.";
-            return;
-        }
-
-        settings.SaveApiKey(dialog.ApiKey);
-        StatusText.Text = "Clave guardada localmente y cifrada para este usuario de Windows.";
     }
 
     private void AttachFiles_Click(object sender, RoutedEventArgs e)
@@ -238,7 +243,6 @@ public partial class AiAssistantPanel : UserControl
         isBusy = busy;
         SendButton.IsEnabled = !busy;
         AttachButton.IsEnabled = !busy;
-        ConfigureButton.IsEnabled = !busy;
         PromptBox.IsEnabled = !busy;
         if (busy)
         {

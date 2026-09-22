@@ -71,6 +71,24 @@ public partial class NotebookEditorView : Window
         ViewModel.MarkDirty();
     }
 
+    private void OpenAiPanel_Click(object sender, RoutedEventArgs e)
+    {
+        AiLauncherButton.Visibility = Visibility.Collapsed;
+        AiOverlay.Visibility = Visibility.Visible;
+        AiPanel.FocusPrompt();
+    }
+
+    private void CloseAiPanel_Click(object sender, RoutedEventArgs e)
+    {
+        AiOverlay.Visibility = Visibility.Collapsed;
+        AiLauncherButton.Visibility = Visibility.Visible;
+    }
+
+    private void AiSettings_Click(object sender, RoutedEventArgs e)
+    {
+        AiPanel.ConfigureApiKey();
+    }
+
     private void Pen_Click(object sender, RoutedEventArgs e)
     {
         currentTool = InkToolMode.Pen;

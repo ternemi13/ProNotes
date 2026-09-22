@@ -5,35 +5,21 @@
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="280" />
+            <RowDefinition Height="*" MinHeight="360" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <DockPanel Margin="0,0,0,8">
-            <TextBlock Text="Asistente IA"
-                       FontSize="18"
-                       FontWeight="SemiBold"
-                       VerticalAlignment="Center"
-                       DockPanel.Dock="Left" />
-            <ui:Button x:Name="ConfigureButton"
-                       Content="Clave"
-                       Icon="{ui:SymbolIcon Key20}"
-                       MinWidth="72"
-                       HorizontalAlignment="Right"
-                       DockPanel.Dock="Right"
-                       Click="ConfigureKey_Click" />
-        </DockPanel>
-
-        <Border Grid.Row="1"
-                BorderBrush="#D8DEE9"
+        <Border Grid.Row="0"
+                BorderBrush="#E2E8F0"
                 BorderThickness="1"
-                Background="#F8FAFC">
+                CornerRadius="18"
+                Background="#F8FAFC"
+                Padding="6">
             <ListBox x:Name="MessagesList"
                      BorderThickness="0"
                      Background="Transparent"
                      ScrollViewer.VerticalScrollBarVisibility="Auto"
-                     Padding="6">
+                     Padding="8">
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem">
                         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -43,11 +29,24 @@
                 </ListBox.ItemContainerStyle>
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <Border Background="White"
-                                BorderBrush="#E2E8F0"
-                                BorderThickness="1"
-                                CornerRadius="6"
-                                Padding="10">
+                        <Border BorderThickness="1"
+                                CornerRadius="14"
+                                Padding="14"
+                                MaxWidth="455">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="White" />
+                                    <Setter Property="BorderBrush" Value="#E2E8F0" />
+                                    <Setter Property="HorizontalAlignment" Value="Left" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Role}" Value="user">
+                                            <Setter Property="Background" Value="#EFF6FF" />
+                                            <Setter Property="BorderBrush" Value="#BFDBFE" />
+                                            <Setter Property="HorizontalAlignment" Value="Right" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
                             <StackPanel>
                                 <TextBlock Foreground="#2563EB"
                                            FontWeight="SemiBold"
@@ -72,51 +71,85 @@
             </ListBox>
         </Border>
 
-        <StackPanel Grid.Row="2"
-                    Margin="0,10,0,0">
-            <ItemsControl x:Name="AttachmentsList"
-                          Margin="4,0,4,6">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <DockPanel Margin="0,0,0,4">
-                            <ui:Button Icon="{ui:SymbolIcon Dismiss20}"
-                                       Width="32"
-                                       Padding="0"
-                                       Tag="{Binding}"
-                                       Click="RemoveAttachment_Click"
-                                       DockPanel.Dock="Right" />
-                            <TextBlock Text="{Binding Name}"
-                                       VerticalAlignment="Center"
-                                       TextTrimming="CharacterEllipsis"
-                                       Foreground="#475569" />
-                        </DockPanel>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-            <ui:TextBox x:Name="PromptBox"
-                        Height="82"
-                        AcceptsReturn="True"
-                        TextWrapping="Wrap"
-                        VerticalScrollBarVisibility="Auto"
-                        PlaceholderText="Escribe tu pregunta..."
-                        ClearButtonEnabled="False"
-                        PreviewKeyDown="PromptBox_PreviewKeyDown" />
-            <WrapPanel HorizontalAlignment="Right"
-                       Margin="0,4,0,0">
-                <ui:Button x:Name="AttachButton"
-                           Content="Adjuntar"
-                           Icon="{ui:SymbolIcon Attach20}"
-                           Click="AttachFiles_Click" />
-                <ui:Button x:Name="SendButton"
-                           Icon="{ui:SymbolIcon Send20}"
-                           ToolTip="Enviar"
-                           Appearance="Primary"
-                           Click="Send_Click" />
-            </WrapPanel>
-            <TextBlock x:Name="StatusText"
-                       TextWrapping="Wrap"
-                       Foreground="#64748B"
-                       Margin="4,6,4,0" />
-        </StackPanel>
+        <Border Grid.Row="1"
+                Margin="0,12,0,0"
+                Background="White"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="18"
+                Padding="12">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <ItemsControl x:Name="AttachmentsList"
+                              Margin="0,0,0,8">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="#F1F5F9"
+                                    BorderBrush="#E2E8F0"
+                                    BorderThickness="1"
+                                    CornerRadius="10"
+                                    Padding="8"
+                                    Margin="0,0,0,6">
+                                <DockPanel>
+                                    <ui:Button Icon="{ui:SymbolIcon Dismiss20}"
+                                               Width="30"
+                                               Height="30"
+                                               CornerRadius="15"
+                                               Padding="0"
+                                               Tag="{Binding}"
+                                               Click="RemoveAttachment_Click"
+                                               DockPanel.Dock="Right" />
+                                    <TextBlock Text="{Binding Name}"
+                                               VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis"
+                                               Foreground="#475569" />
+                                </DockPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <ui:TextBox x:Name="PromptBox"
+                            Grid.Row="1"
+                            Height="82"
+                            AcceptsReturn="True"
+                            TextWrapping="Wrap"
+                            VerticalScrollBarVisibility="Auto"
+                            PlaceholderText="Escribe tu pregunta..."
+                            ClearButtonEnabled="False"
+                            BorderThickness="0"
+                            PreviewKeyDown="PromptBox_PreviewKeyDown" />
+                <Grid Grid.Row="2" Margin="0,10,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ui:Button x:Name="AttachButton"
+                               Content="Adjuntar"
+                               Icon="{ui:SymbolIcon Attach20}"
+                               Click="AttachFiles_Click" />
+                    <TextBlock x:Name="StatusText"
+                               Grid.Column="1"
+                               TextWrapping="Wrap"
+                               Foreground="#64748B"
+                               Margin="10,0"
+                               VerticalAlignment="Center" />
+                    <ui:Button x:Name="SendButton"
+                               Grid.Column="2"
+                               Icon="{ui:SymbolIcon Send20}"
+                               ToolTip="Enviar"
+                               Appearance="Primary"
+                               Width="44"
+                               Height="40"
+                               CornerRadius="20"
+                               Padding="0"
+                               Click="Send_Click" />
+                </Grid>
+            </Grid>
+        </Border>
     </Grid>
 </UserControl>

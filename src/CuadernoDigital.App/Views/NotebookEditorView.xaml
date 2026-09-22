@@ -14,11 +14,19 @@
     <Window.Resources>
         <Style x:Key="ToolButtonStyle" TargetType="{x:Type ui:Button}">
             <Setter Property="Margin" Value="3" />
-            <Setter Property="MinHeight" Value="36" />
-            <Setter Property="Padding" Value="11,7" />
+            <Setter Property="MinHeight" Value="38" />
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Background" Value="#F8FAFC" />
+            <Setter Property="BorderBrush" Value="#E2E8F0" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#1E293B" />
         </Style>
         <Style x:Key="CompactToolButtonStyle" TargetType="{x:Type ui:Button}" BasedOn="{StaticResource ToolButtonStyle}">
-            <Setter Property="MinWidth" Value="38" />
+            <Setter Property="MinWidth" Value="40" />
+            <Setter Property="Width" Value="40" />
+            <Setter Property="Height" Value="38" />
             <Setter Property="Padding" Value="9,7" />
         </Style>
         <Style x:Key="ColorSwatchButtonStyle" TargetType="Button">
@@ -49,7 +57,7 @@
                 Background="{StaticResource SurfaceBrush}"
                 BorderBrush="{StaticResource BorderBrushSoft}"
                 BorderThickness="0,0,0,1"
-                Padding="14,12">
+                Padding="18,14">
             <DockPanel LastChildFill="True">
                 <StackPanel DockPanel.Dock="Right"
                             Orientation="Horizontal"
@@ -78,7 +86,7 @@
                                    Icon="{ui:SymbolIcon Rename20}"
                                    Command="{Binding RenameCommand}"
                                    Style="{StaticResource ToolButtonStyle}" />
-                        <Separator Style="{StaticResource ToolbarDividerStyle}" />
+                        <Border Style="{StaticResource ToolbarDividerStyle}" />
 
                         <ui:Button Content="Pagina"
                                    Icon="{ui:SymbolIcon DocumentPdf20}"
@@ -90,7 +98,7 @@
                                    ToolTip="Exportar cuaderno"
                                    Click="ExportNotebook_Click"
                                    Style="{StaticResource ToolButtonStyle}" />
-                        <Separator Style="{StaticResource ToolbarDividerStyle}" />
+                        <Border Style="{StaticResource ToolbarDividerStyle}" />
 
                         <ui:Button Icon="{ui:SymbolIcon ArrowUndo20}"
                                    ToolTip="Deshacer"
@@ -100,7 +108,7 @@
                                    ToolTip="Rehacer"
                                    Click="Redo_Click"
                                    Style="{StaticResource CompactToolButtonStyle}" />
-                        <Separator Style="{StaticResource ToolbarDividerStyle}" />
+                        <Border Style="{StaticResource ToolbarDividerStyle}" />
 
                         <ui:Button Content="Lapiz" Icon="{ui:SymbolIcon DrawImage20}" Click="Pen_Click" Style="{StaticResource ToolButtonStyle}" />
                         <ui:Button Content="Resaltador" Icon="{ui:SymbolIcon Highlight20}" Click="Highlighter_Click" Style="{StaticResource ToolButtonStyle}" />
@@ -111,13 +119,13 @@
                         </ui:Button>
                         <TextBlock Text="Grosor" VerticalAlignment="Center" Foreground="{StaticResource TextMutedBrush}" Margin="8,0,4,0" />
                         <Slider x:Name="InkWidthSlider" Width="96" Minimum="1" Maximum="18" Value="3" ValueChanged="InkSettings_Changed" />
-                        <Separator Style="{StaticResource ToolbarDividerStyle}" />
+                        <Border Style="{StaticResource ToolbarDividerStyle}" />
 
                         <ui:Button Content="Texto" Icon="{ui:SymbolIcon TextFont20}" Click="InsertText_Click" Style="{StaticResource ToolButtonStyle}" />
                         <ui:Button Content="Tabla" Icon="{ui:SymbolIcon Table20}" Click="InsertTable_Click" Style="{StaticResource ToolButtonStyle}" />
                         <ui:Button Content="Grafica" Icon="{ui:SymbolIcon ChartMultiple20}" Click="InsertChart_Click" Style="{StaticResource ToolButtonStyle}" />
                         <ui:Button Content="Imagen" Icon="{ui:SymbolIcon ImageAdd20}" Click="InsertImage_Click" Style="{StaticResource ToolButtonStyle}" />
-                        <Separator Style="{StaticResource ToolbarDividerStyle}" />
+                        <Border Style="{StaticResource ToolbarDividerStyle}" />
 
                         <ComboBox x:Name="FontFamilyBox" Width="130" SelectedIndex="0" SelectionChanged="FontFamily_Changed" Margin="4">
                             <ComboBoxItem Content="Segoe UI" />
@@ -134,9 +142,9 @@
                             <ComboBoxItem Content="24" />
                             <ComboBoxItem Content="32" />
                         </ComboBox>
-                        <ui:Button Content="B" FontWeight="Bold" ToolTip="Negrita" Click="Bold_Click" Style="{StaticResource CompactToolButtonStyle}" />
-                        <ui:Button Content="I" FontStyle="Italic" ToolTip="Cursiva" Click="Italic_Click" Style="{StaticResource CompactToolButtonStyle}" />
-                        <ui:Button Content="U" ToolTip="Subrayado" Click="Underline_Click" Style="{StaticResource CompactToolButtonStyle}" />
+                        <ui:Button Icon="{ui:SymbolIcon TextBold20}" ToolTip="Negrita" Click="Bold_Click" Style="{StaticResource CompactToolButtonStyle}" />
+                        <ui:Button Icon="{ui:SymbolIcon TextItalic20}" ToolTip="Cursiva" Click="Italic_Click" Style="{StaticResource CompactToolButtonStyle}" />
+                        <ui:Button Icon="{ui:SymbolIcon TextUnderline20}" ToolTip="Subrayado" Click="Underline_Click" Style="{StaticResource CompactToolButtonStyle}" />
                         <ui:Button x:Name="TextColorButton" ToolTip="Color de fuente" Click="TextColorButton_Click" Style="{StaticResource CompactToolButtonStyle}">
                             <Rectangle x:Name="TextColorPreview" Width="18" Height="18" RadiusX="4" RadiusY="4" Fill="#111827" Stroke="#CBD5E1" />
                         </ui:Button>
@@ -157,7 +165,7 @@
                         <ui:Button Icon="{ui:SymbolIcon AlignCenterHorizontal20}" ToolTip="Centrar" Click="AlignCenter_Click" Style="{StaticResource CompactToolButtonStyle}" />
                         <ui:Button Icon="{ui:SymbolIcon AlignRight20}" ToolTip="Alinear derecha" Click="AlignRight_Click" Style="{StaticResource CompactToolButtonStyle}" />
                         <ui:Button Icon="{ui:SymbolIcon DocumentSearch20}" ToolTip="Buscar y reemplazar" Click="FindReplace_Click" Style="{StaticResource CompactToolButtonStyle}" />
-                        <Separator Style="{StaticResource ToolbarDividerStyle}" />
+                        <Border Style="{StaticResource ToolbarDividerStyle}" />
 
                         <ui:Button Content="Fila +" Icon="{ui:SymbolIcon AddSquare20}" Click="AddTableRow_Click" Style="{StaticResource ToolButtonStyle}" />
                         <ui:Button Content="Fila -" Icon="{ui:SymbolIcon TableDeleteRow20}" Click="RemoveTableRow_Click" Style="{StaticResource ToolButtonStyle}" />
@@ -229,29 +237,105 @@
                               PageChanged="CanvasView_PageChanged" />
 
         <Border Grid.Row="1" Grid.Column="2" Background="{StaticResource SurfaceAltBrush}" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1,0,0,0" Padding="16">
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <StackPanel>
-                    <Border Style="{StaticResource CardBorderStyle}" Margin="0,0,0,14">
-                        <StackPanel>
-                            <TextBlock Text="Pagina" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10" />
-                            <TextBlock Text="Fondo" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4" />
-                            <ComboBox ItemsSource="{Binding BackgroundTypes}" SelectedItem="{Binding SelectedPage.BackgroundType, Mode=TwoWay}" SelectionChanged="Background_SelectionChanged" />
-                        </StackPanel>
-                    </Border>
-                    <Border Style="{StaticResource CardBorderStyle}" Margin="0,0,0,14">
-                        <local:AiAssistantPanel x:Name="AiPanel" />
-                    </Border>
-                    <Border Style="{StaticResource CardBorderStyle}">
-                        <StackPanel>
-                            <TextBlock Text="Objetos" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8" />
-                            <TextBlock Text="Selecciona texto, tablas, graficas o imagenes para mover, duplicar, rotar, ordenar o eliminar. Usa Ctrl+V o click derecho para pegar."
-                                       TextWrapping="Wrap"
-                                       Foreground="{StaticResource TextMutedBrush}" />
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-            </ScrollViewer>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Border Grid.Row="0" Style="{StaticResource CardBorderStyle}" Margin="0,0,0,14">
+                    <StackPanel>
+                        <TextBlock Text="Pagina" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10" />
+                        <TextBlock Text="Fondo" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4" />
+                        <ComboBox ItemsSource="{Binding BackgroundTypes}" SelectedItem="{Binding SelectedPage.BackgroundType, Mode=TwoWay}" SelectionChanged="Background_SelectionChanged" />
+                    </StackPanel>
+                </Border>
+
+                <Grid Grid.Row="1" Margin="0,0,0,14">
+                    <ui:Button x:Name="AiLauncherButton"
+                               Width="64"
+                               Height="64"
+                               CornerRadius="32"
+                               Padding="0"
+                               Appearance="Primary"
+                               HorizontalAlignment="Right"
+                               ToolTip="Abrir ProNotes IA"
+                               Click="OpenAiPanel_Click">
+                        <ui:SymbolIcon Symbol="BrainSparkle20" FontSize="28" />
+                    </ui:Button>
+                </Grid>
+
+                <Border Grid.Row="2" Style="{StaticResource CardBorderStyle}">
+                    <StackPanel>
+                        <TextBlock Text="Objetos" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8" />
+                        <TextBlock Text="Selecciona texto, tablas, graficas o imagenes para mover, duplicar, rotar, ordenar o eliminar. Usa Ctrl+V o click derecho para pegar."
+                                   TextWrapping="Wrap"
+                                   Foreground="{StaticResource TextMutedBrush}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
         </Border>
+
+        <Grid x:Name="AiOverlay"
+              Grid.Row="1"
+              Grid.Column="1"
+              Grid.ColumnSpan="2"
+              Panel.ZIndex="20"
+              Visibility="Collapsed"
+              Background="#330F172A">
+            <Border Width="540"
+                    MaxWidth="620"
+                    HorizontalAlignment="Right"
+                    Margin="18"
+                    Padding="18"
+                    Background="White"
+                    BorderBrush="{StaticResource BorderBrushSoft}"
+                    BorderThickness="1"
+                    CornerRadius="22">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="32"
+                                      ShadowDepth="8"
+                                      Direction="270"
+                                      Opacity="0.20"
+                                      Color="#0F172A" />
+                </Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="ProNotes IA" FontSize="22" FontWeight="SemiBold" />
+                            <TextBlock Text="Pregunta, adjunta archivos o pide cambios en tus apuntes"
+                                       Foreground="{StaticResource TextMutedBrush}"
+                                       Margin="0,4,0,0" />
+                        </StackPanel>
+                        <ui:Button Grid.Column="1"
+                                   Content="Clave"
+                                   Icon="{ui:SymbolIcon Key20}"
+                                   Margin="0,0,8,0"
+                                   Click="AiSettings_Click" />
+                        <ui:Button Grid.Column="2"
+                                   Icon="{ui:SymbolIcon Dismiss20}"
+                                   ToolTip="Cerrar IA"
+                                   Width="40"
+                                   Height="40"
+                                   CornerRadius="20"
+                                   Padding="0"
+                                   Click="CloseAiPanel_Click" />
+                    </Grid>
+                    <local:AiAssistantPanel x:Name="AiPanel" Grid.Row="1" />
+                </Grid>
+            </Border>
+        </Grid>
 
         <DockPanel Grid.Row="2" Grid.ColumnSpan="3" Background="{StaticResource SurfaceBrush}" LastChildFill="False">
             <TextBlock Text="{Binding FilePath}" Foreground="{StaticResource TextMutedBrush}" Margin="14,9" TextTrimming="CharacterEllipsis" />
