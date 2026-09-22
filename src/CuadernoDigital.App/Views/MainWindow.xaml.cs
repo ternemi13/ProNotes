@@ -59,6 +59,14 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void ExportPdfMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel viewModel)
+        {
+            await viewModel.ExportNotebookPdfAsync(GetNotebookSummary(sender), this);
+        }
+    }
+
     private static NotebookSummary? GetNotebookSummary(object sender)
     {
         return sender is FrameworkElement element

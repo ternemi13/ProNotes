@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -237,6 +238,65 @@ public partial class NotebookEditorView : Window
         CanvasView.Redo();
     }
 
+    private async void ExportPage_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel.SelectedPage is null)
+        {
+            return;
+        }
+
+        SaveIfNeeded();
+        var dialog = new SaveFileDialog
+        {
+            Title = "Exportar pagina a PDF",
+            Filter = "PDF|*.pdf",
+            FileName = $"{MakeSafeFileName(ViewModel.Notebook.Title)}-{MakeSafeFileName(ViewModel.SelectedPage.Title)}.pdf"
+        };
+
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        await ExportAsync(() => new PdfExportService().ExportPageAsync(ViewModel.SelectedPage, dialog.FileName), dialog.FileName);
+    }
+
+    private async void ExportNotebook_Click(object sender, RoutedEventArgs e)
+    {
+        SaveIfNeeded();
+        var dialog = new SaveFileDialog
+        {
+            Title = "Exportar cuaderno a PDF",
+            Filter = "PDF|*.pdf",
+            FileName = $"{MakeSafeFileName(ViewModel.Notebook.Title)}.pdf"
+        };
+
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        await ExportAsync(() => new PdfExportService().ExportNotebookAsync(ViewModel.Notebook, dialog.FileName), dialog.FileName);
+    }
+
+    private async Task ExportAsync(Func<Task> export, string filePath)
+    {
+        try
+        {
+            Mouse.OverrideCursor = Cursors.Wait;
+            await export();
+            MessageBox.Show(this, $"PDF exportado:\n{filePath}", "Exportacion completada", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"No se pudo exportar el PDF.\n\n{ex.Message}", "Error al exportar", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            Mouse.OverrideCursor = null;
+        }
+    }
+
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
         if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.B)
@@ -304,5 +364,12 @@ public partial class NotebookEditorView : Window
     {
         autoSaveTimer.Stop();
         SaveIfNeeded();
+    }
+
+    private static string MakeSafeFileName(string value)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        var safe = new string(value.Select(character => invalid.Contains(character) ? '_' : character).ToArray()).Trim();
+        return string.IsNullOrWhiteSpace(safe) ? "ProNotes" : safe;
     }
 }

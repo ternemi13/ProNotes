@@ -122,7 +122,7 @@
                                             <MenuItem Header="Duplicar"
                                                       IsEnabled="False" />
                                             <MenuItem Header="Exportar PDF"
-                                                      IsEnabled="False" />
+                                                      Click="ExportPdfMenuItem_Click" />
                                             <Separator />
                                             <MenuItem Header="Eliminar"
                                                       Click="DeleteNotebookMenuItem_Click" />

@@ -1,9 +1,11 @@
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using CuadernoDigital.App.Models;
 using CuadernoDigital.App.Services;
 using CuadernoDigital.App.Views;
+using Microsoft.Win32;
 
 namespace CuadernoDigital.App.ViewModels;
 
@@ -127,10 +129,53 @@ public sealed class MainWindowViewModel : ObservableObject
         LoadLibrary();
     }
 
+    public async Task ExportNotebookPdfAsync(NotebookSummary? summary, Window? owner = null)
+    {
+        if (summary is null)
+        {
+            return;
+        }
+
+        var notebook = repository.Load(summary.FilePath);
+        var dialog = new SaveFileDialog
+        {
+            Title = "Exportar cuaderno a PDF",
+            Filter = "PDF|*.pdf",
+            FileName = $"{MakeSafeFileName(notebook.Title)}.pdf"
+        };
+
+        if (dialog.ShowDialog(owner) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            Mouse.OverrideCursor = Cursors.Wait;
+            await new PdfExportService().ExportNotebookAsync(notebook, dialog.FileName);
+            MessageBox.Show(owner, $"PDF exportado:\n{dialog.FileName}", "Exportacion completada", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(owner, $"No se pudo exportar el PDF.\n\n{ex.Message}", "Error al exportar", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            Mouse.OverrideCursor = null;
+        }
+    }
+
     private void OpenEditor(Notebook notebook, string filePath)
     {
         var window = new NotebookEditorView(repository, notebook, filePath);
         window.Closed += (_, _) => LoadLibrary();
         window.Show();
+    }
+
+    private static string MakeSafeFileName(string value)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        var safe = new string(value.Select(character => invalid.Contains(character) ? '_' : character).ToArray()).Trim();
+        return string.IsNullOrWhiteSpace(safe) ? "ProNotes" : safe;
     }
 }

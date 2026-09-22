@@ -116,6 +116,19 @@ public partial class PageCanvasView : UserControl
         }
     }
 
+    public byte[] RenderPageToPng(NotebookPage page, double scale = 2)
+    {
+        CurrentPage = page;
+        Zoom = 1;
+        ClearSelectionChrome();
+
+        PageHost.Measure(new Size(PageHost.Width, PageHost.Height));
+        PageHost.Arrange(new Rect(0, 0, PageHost.Width, PageHost.Height));
+        PageHost.UpdateLayout();
+
+        return RenderElementToPng(PageHost, PageHost.Width, PageHost.Height, scale);
+    }
+
     public void InsertImageFromFile(string filePath)
     {
         if (CurrentPage is null)
@@ -1351,6 +1364,24 @@ public partial class PageCanvasView : UserControl
         bitmap.EndInit();
         bitmap.Freeze();
         return bitmap;
+    }
+
+    private static byte[] RenderElementToPng(UIElement element, double width, double height, double scale)
+    {
+        scale = Math.Clamp(scale, 1, 4);
+        var bitmap = new RenderTargetBitmap(
+            (int)Math.Ceiling(width * scale),
+            (int)Math.Ceiling(height * scale),
+            96 * scale,
+            96 * scale,
+            PixelFormats.Pbgra32);
+        bitmap.Render(element);
+
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        using var stream = new MemoryStream();
+        encoder.Save(stream);
+        return stream.ToArray();
     }
 
     private static void SetInitialImageSize(StickerImage sticker, byte[] imageBytes)

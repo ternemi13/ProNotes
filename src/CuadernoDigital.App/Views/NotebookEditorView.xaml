@@ -33,6 +33,8 @@
                         VerticalAlignment="Center">
                 <Button Content="Guardar" Command="{Binding SaveCommand}" />
                 <Button Content="Renombrar" Command="{Binding RenameCommand}" />
+                <Button Content="Exportar pagina" Click="ExportPage_Click" />
+                <Button Content="Exportar PDF" Click="ExportNotebook_Click" />
                 <Button Content="Deshacer" Click="Undo_Click" />
                 <Button Content="Rehacer" Click="Redo_Click" />
             </StackPanel>

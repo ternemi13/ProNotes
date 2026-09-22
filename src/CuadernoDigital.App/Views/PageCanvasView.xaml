@@ -57,7 +57,11 @@
                       PanningMode="Both"
                       CanContentScroll="False"
                       Background="#EEF2F7">
-            <Grid Width="900" Height="1200" Margin="36" RenderTransformOrigin="0,0">
+            <Grid x:Name="PageHost"
+                  Width="900"
+                  Height="1200"
+                  Margin="36"
+                  RenderTransformOrigin="0,0">
                 <Grid.RenderTransform>
                     <ScaleTransform ScaleX="{Binding Zoom, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                     ScaleY="{Binding Zoom, RelativeSource={RelativeSource AncestorType=UserControl}}" />
