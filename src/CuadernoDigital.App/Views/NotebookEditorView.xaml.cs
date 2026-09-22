@@ -29,7 +29,7 @@ public partial class NotebookEditorView : Window
         autoSaveTimer.Tick += (_, _) => SaveIfNeeded();
         autoSaveTimer.Start();
 
-        AiPanel.Configure(ViewModel.Notebook, CaptureCurrentPageForAi);
+        AiPanel.Configure(ViewModel.Notebook, CaptureCurrentPageForAi, InsertAiTextIntoPage);
         AiPanel.ChatChanged += (_, _) => ViewModel.MarkDirty();
         ApplyInkSettings();
     }
@@ -54,6 +54,13 @@ public partial class NotebookEditorView : Window
         return ViewModel.SelectedPage is null
             ? null
             : CanvasView.RenderPageToPng(ViewModel.SelectedPage, 1.5);
+    }
+
+    private void InsertAiTextIntoPage(string text)
+    {
+        CanvasView.InsertTextBox(text);
+        currentTool = InkToolMode.Select;
+        ApplyInkSettings();
     }
 
     private void Background_SelectionChanged(object sender, SelectionChangedEventArgs e)

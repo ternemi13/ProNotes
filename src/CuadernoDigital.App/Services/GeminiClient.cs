@@ -9,7 +9,8 @@ namespace CuadernoDigital.App.Services;
 
 public sealed class GeminiClient
 {
-    private const string EndpointFormat = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={0}";
+    private const string ModelName = "gemini-3.6-flash";
+    private const string EndpointFormat = "https://generativelanguage.googleapis.com/v1beta/models/{0}:generateContent?key={1}";
     private readonly HttpClient httpClient;
 
     public GeminiClient(HttpClient? httpClient = null)
@@ -17,43 +18,49 @@ public sealed class GeminiClient
         this.httpClient = httpClient ?? new HttpClient();
     }
 
-    public Task<string> AskAsync(string apiKey, string prompt, IReadOnlyList<AiChatMessage>? history = null, CancellationToken cancellationToken = default)
+    public Task<string> AskAsync(
+        string apiKey,
+        string prompt,
+        IReadOnlyList<AiChatMessage>? history = null,
+        IReadOnlyList<AiRequestAttachment>? attachments = null,
+        byte[]? currentPagePng = null,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(prompt))
         {
             throw new InvalidOperationException("Escribe una pregunta para el asistente.");
         }
 
-        var request = CreateRequest(history, [new JsonObject { ["text"] = prompt.Trim() }]);
-        return SendAsync(apiKey, request, cancellationToken);
-    }
-
-    public Task<string> ReviewPageAsync(
-        string apiKey,
-        byte[] pagePng,
-        IReadOnlyList<AiChatMessage>? history = null,
-        CancellationToken cancellationToken = default)
-    {
-        if (pagePng.Length == 0)
+        var currentParts = new List<JsonObject>
         {
-            throw new InvalidOperationException("No se pudo capturar la pagina actual.");
+            new() { ["text"] = prompt.Trim() }
+        };
+
+        if (currentPagePng is { Length: > 0 })
+        {
+            currentParts.Add(new JsonObject { ["text"] = "Imagen de la pagina actual del cuaderno:" });
+            currentParts.Add(CreateInlineDataPart("image/png", currentPagePng));
         }
 
-        var prompt = "Lee esta pagina de apuntes. Resume lo importante, corrige errores si los ves y sugiere mejoras concretas para estudiar.";
-        var request = CreateRequest(
-            history,
-            [
-                new JsonObject { ["text"] = prompt },
-                new JsonObject
-                {
-                    ["inline_data"] = new JsonObject
-                    {
-                        ["mime_type"] = "image/png",
-                        ["data"] = Convert.ToBase64String(pagePng)
-                    }
-                }
-            ]);
+        foreach (var attachment in attachments ?? [])
+        {
+            if (attachment.Data.Length == 0)
+            {
+                continue;
+            }
 
+            currentParts.Add(new JsonObject { ["text"] = $"Archivo adjunto: {attachment.Name}" });
+            if (attachment.MimeType.StartsWith("text/", StringComparison.OrdinalIgnoreCase))
+            {
+                currentParts.Add(new JsonObject { ["text"] = System.Text.Encoding.UTF8.GetString(attachment.Data) });
+            }
+            else
+            {
+                currentParts.Add(CreateInlineDataPart(attachment.MimeType, attachment.Data));
+            }
+        }
+
+        var request = CreateRequest(history, currentParts);
         return SendAsync(apiKey, request, cancellationToken);
     }
 
@@ -92,10 +99,20 @@ public sealed class GeminiClient
         return new JsonObject
         {
             ["contents"] = contents,
+            ["systemInstruction"] = new JsonObject
+            {
+                ["parts"] = new JsonArray
+                {
+                    new JsonObject
+                    {
+                        ["text"] = "Eres el asistente integrado de ProNotes. Ayudas a estudiar, corregir apuntes, revisar ejercicios, resumir temas y redactar contenido listo para insertar en el cuaderno. Cuando el usuario pida poner, agregar, insertar, editar o corregir contenido en los apuntes, responde con una version final clara y util para pegar en la pagina, sin disculpas ni relleno."
+                    }
+                }
+            },
             ["generationConfig"] = new JsonObject
             {
                 ["temperature"] = 0.4,
-                ["maxOutputTokens"] = 1200
+                ["maxOutputTokens"] = 1800
             }
         };
     }
@@ -107,7 +124,7 @@ public sealed class GeminiClient
             throw new InvalidOperationException("Configura primero tu API key de Gemini.");
         }
 
-        var endpoint = string.Format(EndpointFormat, Uri.EscapeDataString(apiKey.Trim()));
+        var endpoint = string.Format(EndpointFormat, ModelName, Uri.EscapeDataString(apiKey.Trim()));
         using var response = await httpClient.PostAsJsonAsync(endpoint, request, cancellationToken);
         var payload = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!response.IsSuccessStatusCode)
@@ -126,16 +143,51 @@ public sealed class GeminiClient
 
     private static string BuildErrorMessage(HttpStatusCode statusCode, string payload)
     {
+        var apiMessage = TryExtractApiErrorMessage(payload);
         var prefix = statusCode switch
         {
             HttpStatusCode.TooManyRequests => "Gemini alcanzo el limite de cuota o velocidad del plan gratuito.",
             HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => "La API key de Gemini no fue aceptada.",
             HttpStatusCode.BadRequest => "Gemini no pudo procesar la solicitud.",
+            HttpStatusCode.NotFound => "El modelo de Gemini configurado no esta disponible para esta API key.",
             _ => $"Gemini respondio {(int)statusCode}."
         };
 
-        return string.IsNullOrWhiteSpace(payload)
+        return string.IsNullOrWhiteSpace(apiMessage)
             ? prefix
-            : $"{prefix}\n{payload}";
+            : $"{prefix} {apiMessage}";
+    }
+
+    private static JsonObject CreateInlineDataPart(string mimeType, byte[] data)
+    {
+        return new JsonObject
+        {
+            ["inline_data"] = new JsonObject
+            {
+                ["mime_type"] = mimeType,
+                ["data"] = Convert.ToBase64String(data)
+            }
+        };
+    }
+
+    private static string? TryExtractApiErrorMessage(string payload)
+    {
+        if (string.IsNullOrWhiteSpace(payload))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(payload);
+            return document.RootElement
+                .GetProperty("error")
+                .GetProperty("message")
+                .GetString();
+        }
+        catch
+        {
+            return null;
+        }
     }
 }

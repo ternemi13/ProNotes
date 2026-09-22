@@ -311,6 +311,11 @@ public partial class PageCanvasView : UserControl
 
     public void InsertTextBox()
     {
+        InsertTextBox("Escribe aqui...");
+    }
+
+    public void InsertTextBox(string text)
+    {
         if (CurrentPage is null)
         {
             return;
@@ -318,6 +323,11 @@ public partial class PageCanvasView : UserControl
 
         var textBox = new PageTextBox
         {
+            Text = string.IsNullOrWhiteSpace(text) ? "Escribe aqui..." : text.Trim(),
+            X = 140,
+            Y = 140,
+            Width = 420,
+            Height = 180,
             ZIndex = GetNextZIndex()
         };
         CurrentPage.TextBoxes.Add(textBox);

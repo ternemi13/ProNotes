@@ -73,20 +73,40 @@
 
         <StackPanel Grid.Row="2"
                     Margin="0,10,0,0">
+            <ItemsControl x:Name="AttachmentsList"
+                          Margin="4,0,4,6">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <DockPanel Margin="0,0,0,4">
+                            <Button Content="X"
+                                    Width="28"
+                                    Padding="0"
+                                    Tag="{Binding}"
+                                    Click="RemoveAttachment_Click"
+                                    DockPanel.Dock="Right" />
+                            <TextBlock Text="{Binding Name}"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"
+                                       Foreground="#475569" />
+                        </DockPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
             <TextBox x:Name="PromptBox"
                      Height="74"
                      AcceptsReturn="True"
                      TextWrapping="Wrap"
                      VerticalScrollBarVisibility="Auto"
+                     PreviewKeyDown="PromptBox_PreviewKeyDown"
                      ToolTip="Escribe una pregunta para el asistente" />
             <WrapPanel HorizontalAlignment="Right"
                        Margin="0,4,0,0">
-                <Button x:Name="ReviewButton"
-                        Content="Revisar pagina"
-                        Click="ReviewPage_Click" />
-                <Button x:Name="AskButton"
-                        Content="Preguntar"
-                        Click="Ask_Click" />
+                <Button x:Name="AttachButton"
+                        Content="Adjuntar"
+                        Click="AttachFiles_Click" />
+                <Button x:Name="SendButton"
+                        Content="Enviar"
+                        Click="Send_Click" />
             </WrapPanel>
             <TextBlock x:Name="StatusText"
                        TextWrapping="Wrap"
