@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.IO;
+using System.Text;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
@@ -103,19 +105,15 @@ public partial class AiAssistantPanel : UserControl
         var history = messages.ToList();
         var requestAttachments = attachments.ToList();
         var shouldEditPage = ShouldApplyPageEdit(prompt);
-        var needsGeminiForPageEdit = shouldEditPage && NeedsGeminiForPageEdit(prompt, requestAttachments);
-        var pagePng = (needsGeminiForPageEdit || ShouldIncludeCurrentPage(prompt)) ? captureCurrentPage?.Invoke() : null;
-        var shouldInsertIntoNotebook = ShouldInsertAnswerIntoNotebook(prompt);
+        var shouldAttachCurrentPage = shouldEditPage
+            ? NeedsCurrentPageForPageEdit(prompt, requestAttachments)
+            : ShouldIncludeCurrentPage(prompt);
+        var pagePng = shouldAttachCurrentPage ? captureCurrentPage?.Invoke() : null;
+        var shouldInsertIntoNotebook = !shouldEditPage && ShouldInsertAnswerIntoNotebook(prompt);
 
         AddMessage("user", BuildUserMessage(prompt, requestAttachments, pagePng is not null));
         PromptBox.Clear();
         attachments.Clear();
-
-        if (shouldEditPage && !needsGeminiForPageEdit)
-        {
-            ApplyLocalPageEdit(prompt, "Listo. Hice un borrador visual en la pagina.");
-            return;
-        }
 
         if (!TryLoadApiKey(out var apiKey))
         {
@@ -129,7 +127,7 @@ public partial class AiAssistantPanel : UserControl
 
         if (shouldEditPage)
         {
-            await SendPageEditAsync(prompt, () => client.AskForPageEditAsync(apiKey, prompt, history, requestAttachments, pagePng));
+            await SendPageEditAsync(prompt, () => client.AskForPageEditAsync(apiKey, prompt, history.TakeLast(4).ToList(), requestAttachments, pagePng));
             return;
         }
 
@@ -438,7 +436,7 @@ public partial class AiAssistantPanel : UserControl
 
     private static bool ShouldIncludeCurrentPage(string prompt)
     {
-        var normalized = prompt.ToLowerInvariant();
+        var normalized = NormalizePrompt(prompt);
         string[] keywords =
         [
             "pagina",
@@ -456,12 +454,12 @@ public partial class AiAssistantPanel : UserControl
             "lee"
         ];
 
-        return keywords.Any(normalized.Contains);
+        return ContainsAny(normalized, keywords);
     }
 
     private static bool ShouldInsertAnswerIntoNotebook(string prompt)
     {
-        var normalized = prompt.ToLowerInvariant();
+        var normalized = NormalizePrompt(prompt);
         string[] keywords =
         [
             "ponlo",
@@ -477,25 +475,41 @@ public partial class AiAssistantPanel : UserControl
             "corrige la ortografia"
         ];
 
-        return keywords.Any(normalized.Contains);
+        return ContainsAny(normalized, keywords);
     }
 
     private static bool ShouldApplyPageEdit(string prompt)
     {
-        var normalized = prompt.ToLowerInvariant();
+        var normalized = NormalizePrompt(prompt);
         string[] keywords =
         [
             "dibuja",
             "dibuje",
             "dibujame",
+            "dibujar",
+            "dibuj",
             "haz un dibujo",
             "hazme un dibujo",
             "draw",
+            "traza",
+            "plasm",
+            "pinta",
+            "escribe ",
+            "escriba ",
+            "escribeme",
             "escribe en la pagina",
             "escribe en mi cuaderno",
             "pon en la pagina",
+            "pon ",
+            "ponlo",
             "agrega a la pagina",
+            "agrega ",
+            "agregalo",
             "anade a la pagina",
+            "anade ",
+            "coloca ",
+            "inserta ",
+            "insert",
             "transcribe",
             "transcribir",
             "pasalo a la pagina",
@@ -508,17 +522,17 @@ public partial class AiAssistantPanel : UserControl
             "organiza en la pagina"
         ];
 
-        return keywords.Any(normalized.Contains);
+        return ContainsAny(normalized, keywords) || LooksLikeDrawableRequest(normalized);
     }
 
-    private static bool NeedsGeminiForPageEdit(string prompt, IReadOnlyList<AiRequestAttachment> requestAttachments)
+    private static bool NeedsCurrentPageForPageEdit(string prompt, IReadOnlyList<AiRequestAttachment> requestAttachments)
     {
         if (requestAttachments.Count > 0)
         {
             return true;
         }
 
-        var normalized = prompt.ToLowerInvariant();
+        var normalized = NormalizePrompt(prompt);
         string[] keywords =
         [
             "transcribe",
@@ -533,17 +547,24 @@ public partial class AiAssistantPanel : UserControl
             "archivo"
         ];
 
-        return keywords.Any(normalized.Contains);
+        return ContainsAny(normalized, keywords);
     }
 
     private static AiPageEditPlan CreateLocalPageEditPlan(string prompt, string summary)
     {
-        var normalized = prompt.ToLowerInvariant();
+        var normalized = NormalizePrompt(prompt);
         var title = BuildLocalTitle(prompt);
-        if (normalized.Contains("diagrama") || normalized.Contains("mapa") || normalized.Contains("esquema") || normalized.Contains("dibuja") || normalized.Contains("dibuj"))
+        if (LooksLikeDrawingRequest(normalized))
+        {
+            return CreateLocalDrawingPlan(normalized, title, summary);
+        }
+
+        if (LooksLikeDiagramRequest(normalized))
         {
             return CreateLocalDiagramPlan(title, summary);
         }
+
+        var text = BuildLocalWrittenText(prompt);
 
         return new AiPageEditPlan
         {
@@ -552,7 +573,7 @@ public partial class AiAssistantPanel : UserControl
             [
                 new()
                 {
-                    Text = title,
+                    Text = LooksLikeWritingRequest(normalized) ? "Apunte" : title,
                     X = 110,
                     Y = 120,
                     Width = 620,
@@ -563,7 +584,7 @@ public partial class AiAssistantPanel : UserControl
                 },
                 new()
                 {
-                    Text = $"Apunte: {prompt.Trim()}",
+                    Text = text,
                     X = 110,
                     Y = 205,
                     Width = 650,
@@ -572,6 +593,216 @@ public partial class AiAssistantPanel : UserControl
                     Foreground = "#111827",
                     HighlightColor = "#FEF3C7"
                 }
+            ]
+        };
+    }
+
+    private static AiPageEditPlan CreateLocalDrawingPlan(string normalized, string title, string summary)
+    {
+        if (ContainsAny(normalized, "cara feliz") || ContainsAnyWord(normalized, "carita", "smiley", "sonrisa"))
+        {
+            return CreateLocalFacePlan(summary, isHappy: !ContainsAny(normalized, "triste", "sad"));
+        }
+
+        if (ContainsAnyWord(normalized, "corazon", "heart"))
+        {
+            return CreateLocalHeartPlan(summary);
+        }
+
+        if (ContainsAnyWord(normalized, "sol", "sun"))
+        {
+            return CreateLocalSunPlan(summary);
+        }
+
+        if (ContainsAnyWord(normalized, "casa", "house"))
+        {
+            return CreateLocalHousePlan(summary);
+        }
+
+        if (ContainsAnyWord(normalized, "arbol", "tree"))
+        {
+            return CreateLocalTreePlan(summary);
+        }
+
+        if (ContainsAnyWord(normalized, "estrella", "star"))
+        {
+            return CreateLocalStarPlan(summary);
+        }
+
+        if (ContainsAnyWord(normalized, "nube", "cloud"))
+        {
+            return CreateLocalCloudPlan(summary);
+        }
+
+        if (ContainsAnyWord(normalized, "flor", "flower"))
+        {
+            return CreateLocalFlowerPlan(summary);
+        }
+
+        return CreateLocalSketchPlan(title, summary);
+    }
+
+    private static AiPageEditPlan CreateLocalFacePlan(string summary, bool isHappy)
+    {
+        var mouthPoints = isHappy
+            ? Points((350, 365), (385, 405), (450, 420), (515, 405), (550, 365))
+            : Points((350, 410), (385, 370), (450, 355), (515, 370), (550, 410));
+
+        return new AiPageEditPlan
+        {
+            Summary = summary,
+            InkShapes =
+            [
+                new() { Type = "ellipse", X = 300, Y = 170, Width = 300, Height = 300, Stroke = "#F59E0B", StrokeWidth = 8 },
+                new() { Type = "ellipse", X = 370, Y = 275, Width = 34, Height = 44, Stroke = "#111827", StrokeWidth = 7 },
+                new() { Type = "ellipse", X = 496, Y = 275, Width = 34, Height = 44, Stroke = "#111827", StrokeWidth = 7 },
+                new() { Type = "path", Stroke = "#111827", StrokeWidth = 7, Points = mouthPoints },
+                new() { Type = "ellipse", X = 330, Y = 335, Width = 42, Height = 26, Stroke = "#F97316", StrokeWidth = 3 },
+                new() { Type = "ellipse", X = 528, Y = 335, Width = 42, Height = 26, Stroke = "#F97316", StrokeWidth = 3 }
+            ]
+        };
+    }
+
+    private static AiPageEditPlan CreateLocalHeartPlan(string summary)
+    {
+        return new AiPageEditPlan
+        {
+            Summary = summary,
+            InkShapes =
+            [
+                new()
+                {
+                    Type = "path",
+                    Stroke = "#E11D48",
+                    StrokeWidth = 8,
+                    Points = Points(
+                        (450, 470), (330, 360), (285, 285), (310, 225), (370, 210), (425, 255),
+                        (450, 305), (475, 255), (530, 210), (590, 225), (615, 285), (570, 360),
+                        (450, 470))
+                }
+            ]
+        };
+    }
+
+    private static AiPageEditPlan CreateLocalSunPlan(string summary)
+    {
+        return new AiPageEditPlan
+        {
+            Summary = summary,
+            InkShapes =
+            [
+                new() { Type = "ellipse", X = 355, Y = 250, Width = 190, Height = 190, Stroke = "#F59E0B", StrokeWidth = 8 },
+                new() { Type = "line", X = 450, Y = 170, X2 = 450, Y2 = 220, Stroke = "#F59E0B", StrokeWidth = 6 },
+                new() { Type = "line", X = 450, Y = 470, X2 = 450, Y2 = 525, Stroke = "#F59E0B", StrokeWidth = 6 },
+                new() { Type = "line", X = 275, Y = 345, X2 = 330, Y2 = 345, Stroke = "#F59E0B", StrokeWidth = 6 },
+                new() { Type = "line", X = 570, Y = 345, X2 = 625, Y2 = 345, Stroke = "#F59E0B", StrokeWidth = 6 },
+                new() { Type = "line", X = 320, Y = 215, X2 = 355, Y2 = 250, Stroke = "#F59E0B", StrokeWidth = 6 },
+                new() { Type = "line", X = 580, Y = 215, X2 = 545, Y2 = 250, Stroke = "#F59E0B", StrokeWidth = 6 },
+                new() { Type = "line", X = 320, Y = 475, X2 = 355, Y2 = 440, Stroke = "#F59E0B", StrokeWidth = 6 },
+                new() { Type = "line", X = 580, Y = 475, X2 = 545, Y2 = 440, Stroke = "#F59E0B", StrokeWidth = 6 }
+            ]
+        };
+    }
+
+    private static AiPageEditPlan CreateLocalHousePlan(string summary)
+    {
+        return new AiPageEditPlan
+        {
+            Summary = summary,
+            InkShapes =
+            [
+                new() { Type = "rectangle", X = 320, Y = 330, Width = 260, Height = 190, Stroke = "#2563EB", StrokeWidth = 6 },
+                new() { Type = "path", Stroke = "#DC2626", StrokeWidth = 7, Points = Points((290, 330), (450, 205), (610, 330), (290, 330)) },
+                new() { Type = "rectangle", X = 430, Y = 420, Width = 55, Height = 100, Stroke = "#92400E", StrokeWidth = 5 },
+                new() { Type = "rectangle", X = 350, Y = 370, Width = 55, Height = 50, Stroke = "#0EA5E9", StrokeWidth = 4 },
+                new() { Type = "rectangle", X = 505, Y = 370, Width = 55, Height = 50, Stroke = "#0EA5E9", StrokeWidth = 4 }
+            ]
+        };
+    }
+
+    private static AiPageEditPlan CreateLocalTreePlan(string summary)
+    {
+        return new AiPageEditPlan
+        {
+            Summary = summary,
+            InkShapes =
+            [
+                new() { Type = "rectangle", X = 425, Y = 380, Width = 55, Height = 145, Stroke = "#92400E", StrokeWidth = 7 },
+                new() { Type = "ellipse", X = 335, Y = 210, Width = 230, Height = 210, Stroke = "#16A34A", StrokeWidth = 8 },
+                new() { Type = "ellipse", X = 270, Y = 285, Width = 190, Height = 175, Stroke = "#22C55E", StrokeWidth = 7 },
+                new() { Type = "ellipse", X = 445, Y = 285, Width = 190, Height = 175, Stroke = "#22C55E", StrokeWidth = 7 },
+                new() { Type = "line", X = 285, Y = 525, X2 = 615, Y2 = 525, Stroke = "#16A34A", StrokeWidth = 5 }
+            ]
+        };
+    }
+
+    private static AiPageEditPlan CreateLocalStarPlan(string summary)
+    {
+        return new AiPageEditPlan
+        {
+            Summary = summary,
+            InkShapes =
+            [
+                new()
+                {
+                    Type = "path",
+                    Stroke = "#F59E0B",
+                    StrokeWidth = 8,
+                    Points = Points(
+                        (450, 185), (482, 295), (598, 295), (504, 362), (540, 475),
+                        (450, 405), (360, 475), (396, 362), (302, 295), (418, 295), (450, 185))
+                }
+            ]
+        };
+    }
+
+    private static AiPageEditPlan CreateLocalCloudPlan(string summary)
+    {
+        return new AiPageEditPlan
+        {
+            Summary = summary,
+            InkShapes =
+            [
+                new() { Type = "ellipse", X = 280, Y = 320, Width = 180, Height = 120, Stroke = "#0EA5E9", StrokeWidth = 7 },
+                new() { Type = "ellipse", X = 390, Y = 260, Width = 180, Height = 165, Stroke = "#0EA5E9", StrokeWidth = 7 },
+                new() { Type = "ellipse", X = 510, Y = 320, Width = 140, Height = 110, Stroke = "#0EA5E9", StrokeWidth = 7 },
+                new() { Type = "path", Stroke = "#0EA5E9", StrokeWidth = 7, Points = Points((325, 430), (430, 455), (560, 445), (625, 410)) }
+            ]
+        };
+    }
+
+    private static AiPageEditPlan CreateLocalFlowerPlan(string summary)
+    {
+        return new AiPageEditPlan
+        {
+            Summary = summary,
+            InkShapes =
+            [
+                new() { Type = "line", X = 450, Y = 390, X2 = 450, Y2 = 560, Stroke = "#16A34A", StrokeWidth = 7 },
+                new() { Type = "ellipse", X = 410, Y = 230, Width = 80, Height = 115, Stroke = "#EC4899", StrokeWidth = 6 },
+                new() { Type = "ellipse", X = 410, Y = 340, Width = 80, Height = 115, Stroke = "#EC4899", StrokeWidth = 6 },
+                new() { Type = "ellipse", X = 350, Y = 295, Width = 115, Height = 80, Stroke = "#EC4899", StrokeWidth = 6 },
+                new() { Type = "ellipse", X = 435, Y = 295, Width = 115, Height = 80, Stroke = "#EC4899", StrokeWidth = 6 },
+                new() { Type = "ellipse", X = 420, Y = 315, Width = 60, Height = 60, Stroke = "#F59E0B", StrokeWidth = 7 },
+                new() { Type = "path", Stroke = "#16A34A", StrokeWidth = 5, Points = Points((450, 470), (395, 430), (360, 455), (420, 495)) }
+            ]
+        };
+    }
+
+    private static AiPageEditPlan CreateLocalSketchPlan(string title, string summary)
+    {
+        return new AiPageEditPlan
+        {
+            Summary = summary,
+            TextBlocks =
+            [
+                new() { Text = title, X = 250, Y = 145, Width = 400, Height = 55, FontSize = 26, Foreground = "#1D4ED8", IsBold = true, TextAlignment = "Center" }
+            ],
+            InkShapes =
+            [
+                new() { Type = "ellipse", X = 310, Y = 230, Width = 280, Height = 200, Stroke = "#2563EB", StrokeWidth = 6 },
+                new() { Type = "path", Stroke = "#16A34A", StrokeWidth = 6, Points = Points((330, 455), (390, 405), (455, 455), (520, 405), (585, 455)) },
+                new() { Type = "line", X = 315, Y = 505, X2 = 585, Y2 = 505, Stroke = "#64748B", StrokeWidth = 4 }
             ]
         };
     }
@@ -607,10 +838,14 @@ public partial class AiAssistantPanel : UserControl
         var cleaned = prompt
             .Replace("dibujame", "", StringComparison.OrdinalIgnoreCase)
             .Replace("dibuja", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("dibuje", "", StringComparison.OrdinalIgnoreCase)
             .Replace("hazme", "", StringComparison.OrdinalIgnoreCase)
             .Replace("haz", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("has", "", StringComparison.OrdinalIgnoreCase)
             .Replace("escribe en la pagina", "", StringComparison.OrdinalIgnoreCase)
             .Replace("pon en la pagina", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("agrega a la pagina", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("anade a la pagina", "", StringComparison.OrdinalIgnoreCase)
             .Trim(' ', '.', ':', ';', ',');
 
         if (string.IsNullOrWhiteSpace(cleaned))
@@ -619,6 +854,135 @@ public partial class AiAssistantPanel : UserControl
         }
 
         return char.ToUpper(cleaned[0]) + cleaned[1..];
+    }
+
+    private static string BuildLocalWrittenText(string prompt)
+    {
+        var cleaned = prompt.Trim();
+        string[] removable =
+        [
+            "escribe en la pagina",
+            "escribe en mi cuaderno",
+            "pon en la pagina",
+            "agrega a la pagina",
+            "anade a la pagina",
+            "coloca en la pagina",
+            "transcribe",
+            "pasalo a la pagina",
+            "pasa esto a la pagina",
+            "escribe",
+            "pon",
+            "agrega",
+            "anade",
+            "coloca",
+            "inserta"
+        ];
+
+        foreach (var fragment in removable)
+        {
+            cleaned = cleaned.Replace(fragment, "", StringComparison.OrdinalIgnoreCase);
+        }
+
+        cleaned = cleaned.Trim(' ', '.', ':', ';', ',');
+        return string.IsNullOrWhiteSpace(cleaned)
+            ? prompt.Trim()
+            : cleaned;
+    }
+
+    private static bool LooksLikeDrawingRequest(string normalized)
+    {
+        return ContainsAny(normalized, "dibu", "draw", "traza", "pinta", "plasm") || LooksLikeDrawableRequest(normalized);
+    }
+
+    private static bool LooksLikeDrawableRequest(string normalized)
+    {
+        return ContainsAny(normalized, "cara feliz")
+            || ContainsAnyWord(
+            normalized,
+            "carita",
+            "cara",
+            "sonrisa",
+            "smiley",
+            "corazon",
+            "heart",
+            "sol",
+            "sun",
+            "casa",
+            "house",
+            "arbol",
+            "tree",
+            "estrella",
+            "star",
+            "nube",
+            "cloud",
+            "flor",
+            "flower");
+    }
+
+    private static bool LooksLikeDiagramRequest(string normalized)
+    {
+        return ContainsAny(normalized, "diagrama", "mapa", "esquema", "linea de tiempo", "organiza");
+    }
+
+    private static bool LooksLikeWritingRequest(string normalized)
+    {
+        return ContainsAny(normalized, "escribe", "pon ", "agrega", "anade", "coloca", "inserta", "transcribe");
+    }
+
+    private static bool ContainsAny(string text, params string[] keywords)
+    {
+        return keywords.Any(text.Contains);
+    }
+
+    private static bool ContainsAnyWord(string text, params string[] words)
+    {
+        return words.Any(word => ContainsWord(text, word));
+    }
+
+    private static bool ContainsWord(string text, string word)
+    {
+        var index = text.IndexOf(word, StringComparison.Ordinal);
+        while (index >= 0)
+        {
+            var before = index == 0 || !char.IsLetterOrDigit(text[index - 1]);
+            var afterIndex = index + word.Length;
+            var after = afterIndex >= text.Length || !char.IsLetterOrDigit(text[afterIndex]);
+            if (before && after)
+            {
+                return true;
+            }
+
+            index = text.IndexOf(word, index + word.Length, StringComparison.Ordinal);
+        }
+
+        return false;
+    }
+
+    private static string NormalizePrompt(string prompt)
+    {
+        if (string.IsNullOrWhiteSpace(prompt))
+        {
+            return string.Empty;
+        }
+
+        var decomposed = prompt.Normalize(NormalizationForm.FormD);
+        var builder = new StringBuilder(decomposed.Length);
+        foreach (var character in decomposed)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(character) != UnicodeCategory.NonSpacingMark)
+            {
+                builder.Append(char.ToLowerInvariant(character));
+            }
+        }
+
+        return builder.ToString().Normalize(NormalizationForm.FormC);
+    }
+
+    private static List<AiPagePoint> Points(params (double X, double Y)[] points)
+    {
+        return points
+            .Select(point => new AiPagePoint { X = point.X, Y = point.Y })
+            .ToList();
     }
 
     private static string? GetSupportedMimeType(string extension)

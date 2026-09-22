@@ -28,7 +28,7 @@ public sealed class GeminiClientTests
             [4, 5, 6]);
 
         Assert.Equal("ok", answer);
-        Assert.Contains("models/gemini-3.6-flash:generateContent", handler.RequestUri?.ToString());
+        Assert.Contains("models/gemini-2.0-flash:generateContent", handler.RequestUri?.ToString());
         Assert.Contains("inline_data", handler.RequestBody);
         Assert.Contains("application/pdf", handler.RequestBody);
         Assert.Contains("image/png", handler.RequestBody);
