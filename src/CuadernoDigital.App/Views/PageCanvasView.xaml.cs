@@ -418,9 +418,19 @@ public partial class PageCanvasView : UserControl
 
     private byte[]? CropImageBeforeInsert(byte[] bytes)
     {
+        BitmapSource bitmap;
         try
         {
-            var bitmap = ImageCropDialog.DecodeImage(bytes);
+            bitmap = ImageCropDialog.DecodeImage(bytes);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(Window.GetWindow(this), $"No se pudo leer la imagen seleccionada.\n\nDetalle: {ex.Message}", "Imagen no valida", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return null;
+        }
+
+        try
+        {
             var dialog = new ImageCropDialog(bitmap)
             {
                 Owner = Window.GetWindow(this)
@@ -430,8 +440,8 @@ public partial class PageCanvasView : UserControl
         }
         catch (Exception ex)
         {
-            MessageBox.Show(Window.GetWindow(this), $"No se pudo leer la imagen seleccionada.\n\nDetalle: {ex.Message}", "Imagen no valida", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return null;
+            System.Diagnostics.Debug.WriteLine($"No se pudo abrir el recortador de imagen: {ex}");
+            return bytes;
         }
     }
 

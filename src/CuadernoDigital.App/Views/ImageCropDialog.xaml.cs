@@ -7,15 +7,27 @@ namespace CuadernoDigital.App.Views;
 public partial class ImageCropDialog : Window
 {
     private readonly BitmapSource source;
+    private bool controlsReady;
     private bool isUpdating;
 
     public ImageCropDialog(BitmapSource source)
     {
         this.source = source;
         InitializeComponent();
+        Loaded += ImageCropDialog_Loaded;
+    }
+
+    private void ImageCropDialog_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (controlsReady)
+        {
+            return;
+        }
+
         OriginalImage.Source = source;
         ImageSizeText.Text = $"{source.PixelWidth} x {source.PixelHeight}px";
         ConfigureSliders();
+        controlsReady = true;
         UpdatePreview();
     }
 
@@ -46,8 +58,8 @@ public partial class ImageCropDialog : Window
 
     private void CropSlider_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (isUpdating
-            || source is null
+        if (!controlsReady
+            || isUpdating
             || CropXSlider is null
             || CropYSlider is null
             || CropWidthSlider is null
@@ -95,8 +107,12 @@ public partial class ImageCropDialog : Window
 
     private void UseFullImage_Click(object sender, RoutedEventArgs e)
     {
-        ConfigureSliders();
-        UpdatePreview();
+        if (controlsReady)
+        {
+            ConfigureSliders();
+            UpdatePreview();
+        }
+
         CroppedPngBytes = EncodePng(source);
         DialogResult = true;
     }
