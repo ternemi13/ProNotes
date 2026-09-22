@@ -37,7 +37,7 @@ dotnet publish .\src\CuadernoDigital.App\CuadernoDigital.App.csproj -c Release -
 - Fase 1: cuadernos y paginas, implementada.
 - Fase 2: lienzo de dibujo, fondos, herramientas, zoom y autoguardado, implementada.
 - Fase 3: imagenes embebidas, movibles y redimensionables, implementada parcialmente. Falta recorte.
-- Fase 4: cajas de texto editables con formato y tablas editables, movibles y redimensionables, implementadas parcialmente. Faltan graficas.
+- Fase 4: cajas de texto editables con formato y tablas editables, movibles y redimensionables, implementadas parcialmente. Las tablas permiten elegir filas/columnas al insertarlas y modificar filas/columnas despues. Faltan graficas.
 - Fase 5: editor de portadas.
 - Fase 6: exportacion PDF con QuestPDF.
 - Fase 7: asistente Gemini con API key protegida localmente.

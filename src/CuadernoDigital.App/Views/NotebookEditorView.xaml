@@ -48,9 +48,8 @@
                         TickFrequency="0.1" />
             </StackPanel>
 
-            <StackPanel Orientation="Horizontal"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center">
+            <WrapPanel HorizontalAlignment="Center"
+                       VerticalAlignment="Center">
                 <Button Content="Lapiz" Click="Pen_Click" />
                 <Button Content="Resaltador" Click="Highlighter_Click" />
                 <Button Content="Borrador" Click="Eraser_Click" />
@@ -101,7 +100,12 @@
                 <Button Content="Izq" Click="AlignLeft_Click" />
                 <Button Content="Centro" Click="AlignCenter_Click" />
                 <Button Content="Der" Click="AlignRight_Click" />
-            </StackPanel>
+                <Separator Width="1" Height="24" Margin="8,0" Background="#CBD5E1" />
+                <Button Content="Fila +" Click="AddTableRow_Click" />
+                <Button Content="Fila -" Click="RemoveTableRow_Click" />
+                <Button Content="Col +" Click="AddTableColumn_Click" />
+                <Button Content="Col -" Click="RemoveTableColumn_Click" />
+            </WrapPanel>
         </DockPanel>
 
         <Border Grid.Row="1"
@@ -169,7 +173,7 @@
                            FontSize="18"
                            FontWeight="SemiBold"
                            Margin="4,0,0,8" />
-                <TextBlock Text="Texto, tablas e imagenes activos. Usa Texto, Tabla, Imagen, Ctrl+V o click derecho. Para mover, redimensionar o borrar un objeto, usa Cursor."
+                <TextBlock Text="Texto, tablas e imagenes activos. Usa Texto, Tabla, Imagen, Ctrl+V o click derecho. Selecciona una tabla para agregar o quitar filas y columnas."
                            TextWrapping="Wrap"
                            Foreground="#64748B"
                            Margin="4" />

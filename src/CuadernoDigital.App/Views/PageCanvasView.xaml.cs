@@ -136,19 +136,50 @@ public partial class PageCanvasView : UserControl
         PageChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    public void InsertTable()
+    public void InsertTable(int rows = 3, int columns = 3)
     {
         if (CurrentPage is null)
         {
             return;
         }
 
-        var table = new PageTable();
+        var table = new PageTable
+        {
+            Rows = rows,
+            Columns = columns,
+            Width = Math.Max(220, columns * 120),
+            Height = Math.Max(90, rows * 44)
+        };
         table.EnsureCellCount();
         CurrentPage.Tables.Add(table);
         RenderObjects();
         SelectTable(table);
         PageChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void AddRowToSelectedTable()
+    {
+        ModifySelectedTable(table => table.AddRow());
+    }
+
+    public void RemoveRowFromSelectedTable()
+    {
+        ModifySelectedTable(table => table.RemoveRow());
+    }
+
+    public void AddColumnToSelectedTable()
+    {
+        ModifySelectedTable(table => table.AddColumn());
+    }
+
+    public void RemoveColumnFromSelectedTable()
+    {
+        ModifySelectedTable(table => table.RemoveColumn());
+    }
+
+    public void ResizeSelectedTable(int rows, int columns)
+    {
+        ModifySelectedTable(table => table.Resize(rows, columns));
     }
 
     public void SetSelectedTextFontSize(double fontSize)
@@ -635,7 +666,8 @@ public partial class PageCanvasView : UserControl
                     Background = Brushes.Transparent,
                     FontSize = table.FontSize,
                     Padding = new Thickness(6, 4, 6, 4),
-                    VerticalScrollBarVisibility = ScrollBarVisibility.Auto
+                    VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                    VerticalContentAlignment = VerticalAlignment.Center
                 };
                 cell.TextChanged += (_, _) =>
                 {
@@ -769,6 +801,20 @@ public partial class PageCanvasView : UserControl
         apply(textBox);
         RenderObjects();
         SelectTextBox(textBox);
+        PageChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void ModifySelectedTable(Action<PageTable> modify)
+    {
+        if (selectedTable is null)
+        {
+            return;
+        }
+
+        var table = selectedTable;
+        modify(table);
+        RenderObjects();
+        SelectTable(table);
         PageChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -962,81 +1008,21 @@ public partial class PageCanvasView : UserControl
 
     private void AddTableRowMenuItem_Click(object sender, RoutedEventArgs e)
     {
-        var table = selectedTable;
-        if (table is null)
-        {
-            return;
-        }
-
-        table.Rows++;
-        table.EnsureCellCount();
-        RenderObjects();
-        SelectTable(table);
-        PageChanged?.Invoke(this, EventArgs.Empty);
+        AddRowToSelectedTable();
     }
 
     private void AddTableColumnMenuItem_Click(object sender, RoutedEventArgs e)
     {
-        var table = selectedTable;
-        if (table is null)
-        {
-            return;
-        }
-
-        var oldColumns = table.Columns;
-        var oldCells = table.Cells.ToList();
-        table.Columns++;
-        table.Cells.Clear();
-        for (var row = 0; row < table.Rows; row++)
-        {
-            for (var column = 0; column < table.Columns; column++)
-            {
-                table.Cells.Add(column < oldColumns ? oldCells[row * oldColumns + column] : string.Empty);
-            }
-        }
-
-        RenderObjects();
-        SelectTable(table);
-        PageChanged?.Invoke(this, EventArgs.Empty);
+        AddColumnToSelectedTable();
     }
 
     private void RemoveTableRowMenuItem_Click(object sender, RoutedEventArgs e)
     {
-        var table = selectedTable;
-        if (table is null || table.Rows <= 1)
-        {
-            return;
-        }
-
-        table.Rows--;
-        table.EnsureCellCount();
-        RenderObjects();
-        SelectTable(table);
-        PageChanged?.Invoke(this, EventArgs.Empty);
+        RemoveRowFromSelectedTable();
     }
 
     private void RemoveTableColumnMenuItem_Click(object sender, RoutedEventArgs e)
     {
-        var table = selectedTable;
-        if (table is null || table.Columns <= 1)
-        {
-            return;
-        }
-
-        var oldColumns = table.Columns;
-        var oldCells = table.Cells.ToList();
-        table.Columns--;
-        table.Cells.Clear();
-        for (var row = 0; row < table.Rows; row++)
-        {
-            for (var column = 0; column < table.Columns; column++)
-            {
-                table.Cells.Add(oldCells[row * oldColumns + column]);
-            }
-        }
-
-        RenderObjects();
-        SelectTable(table);
-        PageChanged?.Invoke(this, EventArgs.Empty);
+        RemoveColumnFromSelectedTable();
     }
 }

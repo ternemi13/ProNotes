@@ -84,9 +84,17 @@ public partial class NotebookEditorView : Window
 
     private void InsertTable_Click(object sender, RoutedEventArgs e)
     {
-        CanvasView.InsertTable();
-        currentTool = InkToolMode.Select;
-        ApplyInkSettings();
+        var dialog = new TableSizeDialog
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            CanvasView.InsertTable(dialog.Rows, dialog.Columns);
+            currentTool = InkToolMode.Select;
+            ApplyInkSettings();
+        }
     }
 
     private void InsertImage_Click(object sender, RoutedEventArgs e)
@@ -171,6 +179,26 @@ public partial class NotebookEditorView : Window
     private void AlignRight_Click(object sender, RoutedEventArgs e)
     {
         CanvasView.SetSelectedTextAlignment("Right");
+    }
+
+    private void AddTableRow_Click(object sender, RoutedEventArgs e)
+    {
+        CanvasView.AddRowToSelectedTable();
+    }
+
+    private void RemoveTableRow_Click(object sender, RoutedEventArgs e)
+    {
+        CanvasView.RemoveRowFromSelectedTable();
+    }
+
+    private void AddTableColumn_Click(object sender, RoutedEventArgs e)
+    {
+        CanvasView.AddColumnToSelectedTable();
+    }
+
+    private void RemoveTableColumn_Click(object sender, RoutedEventArgs e)
+    {
+        CanvasView.RemoveColumnFromSelectedTable();
     }
 
     private void ApplyInkSettings()

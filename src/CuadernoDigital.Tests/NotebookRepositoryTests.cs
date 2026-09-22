@@ -120,4 +120,30 @@ public sealed class NotebookRepositoryTests
         Assert.Equal(320, loadedTable.Width);
         Assert.Equal(["A", "B", "C", "D"], loadedTable.Cells);
     }
+
+    [Fact]
+    public void PageTable_ResizePreservesExistingCells()
+    {
+        var table = new PageTable
+        {
+            Rows = 2,
+            Columns = 2,
+            Cells = ["A", "B", "C", "D"]
+        };
+
+        table.Resize(3, 3);
+
+        Assert.Equal(3, table.Rows);
+        Assert.Equal(3, table.Columns);
+        Assert.Equal("A", table.Cells[0]);
+        Assert.Equal("B", table.Cells[1]);
+        Assert.Equal("C", table.Cells[3]);
+        Assert.Equal("D", table.Cells[4]);
+
+        table.Resize(1, 2);
+
+        Assert.Equal(1, table.Rows);
+        Assert.Equal(2, table.Columns);
+        Assert.Equal(["A", "B"], table.Cells);
+    }
 }
