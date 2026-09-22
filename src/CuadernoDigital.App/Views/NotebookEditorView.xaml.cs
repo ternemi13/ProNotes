@@ -16,6 +16,9 @@ public partial class NotebookEditorView : Window
 {
     private readonly DispatcherTimer autoSaveTimer;
     private InkToolMode currentTool = InkToolMode.Pen;
+    private string currentInkColor = "#111827";
+    private string currentTextColor = "#111827";
+    private string currentHighlightColor = "#FEF08A";
 
     public NotebookEditorView(NotebookRepository repository, Notebook notebook, string filePath)
     {
@@ -188,14 +191,27 @@ public partial class NotebookEditorView : Window
         }
     }
 
-    private void TextColor_Changed(object sender, RoutedEventArgs e)
+    private void FontFamily_Changed(object sender, RoutedEventArgs e)
     {
-        if (CanvasView is null || TextColorBox?.SelectedItem is not ComboBoxItem item || item.Tag is not string color)
+        if (CanvasView is null || FontFamilyBox?.SelectedItem is not ComboBoxItem item)
         {
             return;
         }
 
-        CanvasView.SetSelectedTextColor(color);
+        CanvasView.SetSelectedTextFontFamily(item.Content?.ToString() ?? "Segoe UI");
+    }
+
+    private void LineSpacing_Changed(object sender, RoutedEventArgs e)
+    {
+        if (CanvasView is null || LineSpacingBox?.SelectedItem is not ComboBoxItem item)
+        {
+            return;
+        }
+
+        if (double.TryParse(item.Content?.ToString(), out var lineSpacing))
+        {
+            CanvasView.SetSelectedTextLineSpacing(lineSpacing);
+        }
     }
 
     private void AlignLeft_Click(object sender, RoutedEventArgs e)
@@ -211,6 +227,42 @@ public partial class NotebookEditorView : Window
     private void AlignRight_Click(object sender, RoutedEventArgs e)
     {
         CanvasView.SetSelectedTextAlignment("Right");
+    }
+
+    private void Bullets_Click(object sender, RoutedEventArgs e)
+    {
+        CanvasView.ApplyBulletsToSelectedText();
+    }
+
+    private void Numbering_Click(object sender, RoutedEventArgs e)
+    {
+        CanvasView.ApplyNumberingToSelectedText();
+    }
+
+    private void IncreaseIndent_Click(object sender, RoutedEventArgs e)
+    {
+        CanvasView.IncreaseSelectedTextIndent();
+    }
+
+    private void DecreaseIndent_Click(object sender, RoutedEventArgs e)
+    {
+        CanvasView.DecreaseSelectedTextIndent();
+    }
+
+    private void FindReplace_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new FindReplaceDialog
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        var count = CanvasView.ReplaceTextOnPage(dialog.FindText, dialog.ReplacementText, dialog.MatchCase);
+        MessageBox.Show(this, $"Reemplazos realizados: {count}", "Buscar y reemplazar", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private void AddTableRow_Click(object sender, RoutedEventArgs e)
@@ -235,13 +287,62 @@ public partial class NotebookEditorView : Window
 
     private void ApplyInkSettings()
     {
-        var color = Colors.Black;
-        if (InkColorBox?.SelectedItem is ComboBoxItem item && item.Tag is string hex)
+        var color = (Color)ColorConverter.ConvertFromString(currentInkColor);
+        CanvasView.ConfigureTool(currentTool, color, InkWidthSlider?.Value ?? 3);
+    }
+
+    private void InkColorButton_Click(object sender, RoutedEventArgs e)
+    {
+        InkColorPopup.IsOpen = true;
+    }
+
+    private void TextColorButton_Click(object sender, RoutedEventArgs e)
+    {
+        TextColorPopup.IsOpen = true;
+    }
+
+    private void HighlightColorButton_Click(object sender, RoutedEventArgs e)
+    {
+        HighlightColorPopup.IsOpen = true;
+    }
+
+    private void InkColor_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.Tag is not string color)
         {
-            color = (Color)ColorConverter.ConvertFromString(hex);
+            return;
         }
 
-        CanvasView.ConfigureTool(currentTool, color, InkWidthSlider?.Value ?? 3);
+        currentInkColor = color;
+        SetSwatch(InkColorPreview, color);
+        InkColorPopup.IsOpen = false;
+        ApplyInkSettings();
+    }
+
+    private void TextColor_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.Tag is not string color)
+        {
+            return;
+        }
+
+        currentTextColor = color;
+        SetSwatch(TextColorPreview, color);
+        TextColorPopup.IsOpen = false;
+        CanvasView.SetSelectedTextColor(currentTextColor);
+    }
+
+    private void HighlightColor_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.Tag is not string color)
+        {
+            return;
+        }
+
+        currentHighlightColor = color;
+        SetSwatch(HighlightColorPreview, color);
+        HighlightColorPopup.IsOpen = false;
+        CanvasView.SetSelectedTextHighlightColor(currentHighlightColor);
     }
 
     private void Undo_Click(object sender, RoutedEventArgs e)
@@ -387,5 +488,12 @@ public partial class NotebookEditorView : Window
         var invalid = Path.GetInvalidFileNameChars();
         var safe = new string(value.Select(character => invalid.Contains(character) ? '_' : character).ToArray()).Trim();
         return string.IsNullOrWhiteSpace(safe) ? "ProNotes" : safe;
+    }
+
+    private static void SetSwatch(System.Windows.Shapes.Rectangle swatch, string color)
+    {
+        swatch.Fill = string.Equals(color, "Transparent", StringComparison.OrdinalIgnoreCase)
+            ? Brushes.Transparent
+            : (Brush)new BrushConverter().ConvertFromString(color)!;
     }
 }

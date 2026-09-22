@@ -108,6 +108,10 @@ public sealed class NotebookRepositoryTests
             Width = 300,
             Height = 140,
             FontSize = 20,
+            FontFamily = "Aptos",
+            HighlightColor = "#FEF08A",
+            LineSpacing = 1.5,
+            IndentLevel = 2,
             IsBold = true,
             IsUnderline = true,
             Foreground = "#2563EB",
@@ -125,6 +129,10 @@ public sealed class NotebookRepositoryTests
         Assert.Equal(33, textBox.X);
         Assert.Equal(300, textBox.Width);
         Assert.Equal(20, textBox.FontSize);
+        Assert.Equal("Aptos", textBox.FontFamily);
+        Assert.Equal("#FEF08A", textBox.HighlightColor);
+        Assert.Equal(1.5, textBox.LineSpacing);
+        Assert.Equal(2, textBox.IndentLevel);
         Assert.True(textBox.IsBold);
         Assert.True(textBox.IsUnderline);
         Assert.Equal("#2563EB", textBox.Foreground);

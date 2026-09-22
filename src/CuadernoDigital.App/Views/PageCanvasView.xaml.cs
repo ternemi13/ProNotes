@@ -245,6 +245,21 @@ public partial class PageCanvasView : UserControl
         ApplySelectedTextBoxStyle(textBox => textBox.Foreground = color);
     }
 
+    public void SetSelectedTextFontFamily(string fontFamily)
+    {
+        ApplySelectedTextBoxStyle(textBox => textBox.FontFamily = string.IsNullOrWhiteSpace(fontFamily) ? "Segoe UI" : fontFamily);
+    }
+
+    public void SetSelectedTextHighlightColor(string color)
+    {
+        ApplySelectedTextBoxStyle(textBox => textBox.HighlightColor = color);
+    }
+
+    public void SetSelectedTextLineSpacing(double lineSpacing)
+    {
+        ApplySelectedTextBoxStyle(textBox => textBox.LineSpacing = Math.Clamp(lineSpacing, 1, 2.5));
+    }
+
     public void ToggleSelectedTextBold()
     {
         ApplySelectedTextBoxStyle(textBox => textBox.IsBold = !textBox.IsBold);
@@ -263,6 +278,75 @@ public partial class PageCanvasView : UserControl
     public void SetSelectedTextAlignment(string alignment)
     {
         ApplySelectedTextBoxStyle(textBox => textBox.TextAlignment = alignment);
+    }
+
+    public void ApplyBulletsToSelectedText()
+    {
+        ApplySelectedTextBoxStyle(textBox => textBox.Text = PrefixTextLines(textBox.Text, index => "• "));
+    }
+
+    public void ApplyNumberingToSelectedText()
+    {
+        ApplySelectedTextBoxStyle(textBox => textBox.Text = PrefixTextLines(textBox.Text, index => $"{index + 1}. "));
+    }
+
+    public void IncreaseSelectedTextIndent()
+    {
+        ApplySelectedTextBoxStyle(textBox => textBox.IndentLevel = Math.Min(8, textBox.IndentLevel + 1));
+    }
+
+    public void DecreaseSelectedTextIndent()
+    {
+        ApplySelectedTextBoxStyle(textBox => textBox.IndentLevel = Math.Max(0, textBox.IndentLevel - 1));
+    }
+
+    public int ReplaceTextOnPage(string searchText, string replacement, bool matchCase)
+    {
+        if (CurrentPage is null || string.IsNullOrEmpty(searchText))
+        {
+            return 0;
+        }
+
+        var comparison = matchCase ? StringComparison.CurrentCulture : StringComparison.CurrentCultureIgnoreCase;
+        var replacements = 0;
+        foreach (var textBox in CurrentPage.TextBoxes)
+        {
+            var text = textBox.Text;
+            replacements += ReplaceAll(ref text, searchText, replacement, comparison);
+            textBox.Text = text;
+        }
+
+        foreach (var table in CurrentPage.Tables)
+        {
+            for (var index = 0; index < table.Cells.Count; index++)
+            {
+                var text = table.Cells[index];
+                replacements += ReplaceAll(ref text, searchText, replacement, comparison);
+                table.Cells[index] = text;
+            }
+        }
+
+        if (replacements > 0)
+        {
+            RenderObjects();
+            PageChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        return replacements;
+    }
+
+    private static int ReplaceAll(ref string text, string searchText, string replacement, StringComparison comparison)
+    {
+        var replacements = 0;
+        var index = text.IndexOf(searchText, comparison);
+        while (index >= 0)
+        {
+            text = string.Concat(text.AsSpan(0, index), replacement, text.AsSpan(index + searchText.Length));
+            replacements++;
+            index = text.IndexOf(searchText, index + replacement.Length, comparison);
+        }
+
+        return replacements;
     }
 
     public void InsertImageFromClipboard()
@@ -698,9 +782,15 @@ public partial class PageCanvasView : UserControl
             FontStyle = pageTextBox.IsItalic ? FontStyles.Italic : FontStyles.Normal,
             TextDecorations = pageTextBox.IsUnderline ? TextDecorations.Underline : null,
             TextAlignment = ParseTextAlignment(pageTextBox.TextAlignment),
-            Padding = new Thickness(4),
+            Padding = new Thickness(4 + pageTextBox.IndentLevel * 22, 4, 4, 4),
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto
         };
+        editor.SetValue(TextBlock.LineHeightProperty, pageTextBox.FontSize * pageTextBox.LineSpacing);
+        editor.SetValue(TextBlock.LineStackingStrategyProperty, LineStackingStrategy.BlockLineHeight);
+        if (!string.Equals(pageTextBox.HighlightColor, "Transparent", StringComparison.OrdinalIgnoreCase))
+        {
+            editor.Background = (Brush)new BrushConverter().ConvertFromString(pageTextBox.HighlightColor)!;
+        }
         editor.TextChanged += (_, _) =>
         {
             pageTextBox.Text = editor.Text;
@@ -1219,6 +1309,9 @@ public partial class PageCanvasView : UserControl
             FontSize = source.FontSize,
             FontFamily = source.FontFamily,
             Foreground = source.Foreground,
+            HighlightColor = source.HighlightColor,
+            LineSpacing = source.LineSpacing,
+            IndentLevel = source.IndentLevel,
             IsBold = source.IsBold,
             IsItalic = source.IsItalic,
             IsUnderline = source.IsUnderline,
@@ -1450,6 +1543,43 @@ public partial class PageCanvasView : UserControl
             "Justify" => TextAlignment.Justify,
             _ => TextAlignment.Left
         };
+    }
+
+    private static string PrefixTextLines(string text, Func<int, string> prefixFactory)
+    {
+        var lines = text.Replace("\r\n", "\n").Split('\n');
+        var contentIndex = 0;
+        for (var index = 0; index < lines.Length; index++)
+        {
+            var line = StripListPrefix(lines[index]);
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                lines[index] = line;
+                continue;
+            }
+
+            lines[index] = prefixFactory(contentIndex) + line.TrimStart();
+            contentIndex++;
+        }
+
+        return string.Join(Environment.NewLine, lines);
+    }
+
+    private static string StripListPrefix(string line)
+    {
+        var trimmed = line.TrimStart();
+        if (trimmed.StartsWith("• ", StringComparison.Ordinal))
+        {
+            return trimmed[2..];
+        }
+
+        var dotIndex = trimmed.IndexOf(". ", StringComparison.Ordinal);
+        if (dotIndex > 0 && trimmed[..dotIndex].All(char.IsDigit))
+        {
+            return trimmed[(dotIndex + 2)..];
+        }
+
+        return line;
     }
 
     private void InkSurface_StrokeCollected(object sender, InkCanvasStrokeCollectedEventArgs e)

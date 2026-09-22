@@ -25,7 +25,7 @@ Cada pagina contiene:
 - `backgroundType`: `Plain`, `Grid`, `Lined` o `Dotted`.
 - `inkBase64`: trazos WPF serializados en formato ISF y convertidos a Base64.
 - `images`: imagenes insertadas con metadata de posicion, tamano, rotacion, orden de capa y contenido Base64.
-- `textBoxes`: cajas de texto editables con posicion, tamano, rotacion, orden de capa, contenido, color, tamano de fuente, negrita, cursiva, subrayado y alineacion.
+- `textBoxes`: cajas de texto editables con posicion, tamano, rotacion, orden de capa, contenido, fuente, tamano, color, resaltado, interlineado, sangria, negrita, cursiva, subrayado y alineacion.
 - `tables`: tablas con posicion, tamano, rotacion, orden de capa, filas, columnas y texto editable por celda.
 - `charts`: graficas simples con posicion, tamano, rotacion, orden de capa, titulo, tipo (`Bar`, `Line` o `Pie`) y datos etiqueta/valor.
 

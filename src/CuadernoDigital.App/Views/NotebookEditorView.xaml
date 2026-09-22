@@ -3,135 +3,219 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:CuadernoDigital.App.Views"
         xmlns:models="clr-namespace:CuadernoDigital.App.Models"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         Title="{Binding Notebook.Title}"
-        Width="1280"
-        Height="820"
-        MinWidth="900"
-        MinHeight="620"
-        Background="#EEF2F7"
+        Width="1440"
+        Height="860"
+        MinWidth="1100"
+        MinHeight="680"
         PreviewKeyDown="Window_PreviewKeyDown"
         Closing="Window_Closing">
-    <Grid>
+    <Window.Resources>
+        <Style x:Key="ToolButtonStyle" TargetType="{x:Type ui:Button}">
+            <Setter Property="Margin" Value="3" />
+            <Setter Property="MinHeight" Value="36" />
+            <Setter Property="Padding" Value="11,7" />
+        </Style>
+        <Style x:Key="CompactToolButtonStyle" TargetType="{x:Type ui:Button}" BasedOn="{StaticResource ToolButtonStyle}">
+            <Setter Property="MinWidth" Value="38" />
+            <Setter Property="Padding" Value="9,7" />
+        </Style>
+        <Style x:Key="ColorSwatchButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Margin" Value="4" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="BorderBrush" Value="#CBD5E1" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+    </Window.Resources>
+
+    <Grid Background="{StaticResource AppBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="230" />
+            <ColumnDefinition Width="250" />
             <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="280" />
+            <ColumnDefinition Width="330" />
         </Grid.ColumnDefinitions>
 
-        <DockPanel Grid.Row="0"
-                   Grid.ColumnSpan="3"
-                   Background="White"
-                   LastChildFill="True">
-            <StackPanel DockPanel.Dock="Left"
-                        Orientation="Horizontal"
-                        Margin="10"
-                        VerticalAlignment="Center">
-                <Button Content="Guardar" Command="{Binding SaveCommand}" />
-                <Button Content="Renombrar" Command="{Binding RenameCommand}" />
-                <Button Content="Exportar pagina" Click="ExportPage_Click" />
-                <Button Content="Exportar PDF" Click="ExportNotebook_Click" />
-                <Button Content="Deshacer" Click="Undo_Click" />
-                <Button Content="Rehacer" Click="Redo_Click" />
-            </StackPanel>
-
-            <StackPanel DockPanel.Dock="Right"
-                        Orientation="Horizontal"
-                        Margin="10"
-                        VerticalAlignment="Center">
-                <TextBlock Text="Zoom" VerticalAlignment="Center" Margin="8,0,2,0" />
-                <Slider Width="120"
-                        Minimum="0.5"
-                        Maximum="2.2"
-                        Value="{Binding Zoom, ElementName=CanvasView, Mode=TwoWay}"
-                        TickFrequency="0.1" />
-            </StackPanel>
-
-            <WrapPanel HorizontalAlignment="Center"
-                       VerticalAlignment="Center">
-                <Button Content="Lapiz" Click="Pen_Click" />
-                <Button Content="Resaltador" Click="Highlighter_Click" />
-                <Button Content="Borrador" Click="Eraser_Click" />
-                <Button Content="Cursor" Click="Cursor_Click" />
-                <Button Content="Texto" Click="InsertText_Click" />
-                <Button Content="Tabla" Click="InsertTable_Click" />
-                <Button Content="Grafica" Click="InsertChart_Click" />
-                <Button Content="Imagen" Click="InsertImage_Click" />
-                <ComboBox x:Name="InkColorBox"
-                          Width="118"
-                          SelectedIndex="0"
-                          SelectionChanged="InkSettings_Changed">
-                    <ComboBoxItem Content="Negro" Tag="#111827" />
-                    <ComboBoxItem Content="Azul" Tag="#2563EB" />
-                    <ComboBoxItem Content="Rojo" Tag="#DC2626" />
-                    <ComboBoxItem Content="Verde" Tag="#16A34A" />
-                    <ComboBoxItem Content="Amarillo" Tag="#FACC15" />
-                </ComboBox>
-                <TextBlock Text="Grosor" VerticalAlignment="Center" Margin="10,0,2,0" />
-                <Slider x:Name="InkWidthSlider"
-                        Width="110"
-                        Minimum="1"
-                        Maximum="18"
-                        Value="3"
-                        ValueChanged="InkSettings_Changed" />
-                <Separator Width="1" Height="24" Margin="8,0" Background="#CBD5E1" />
-                <Button Content="B" FontWeight="Bold" Click="Bold_Click" />
-                <Button Content="I" FontStyle="Italic" Click="Italic_Click" />
-                <Button Content="U" Click="Underline_Click" />
-                <ComboBox x:Name="TextSizeBox"
-                          Width="72"
-                          SelectedIndex="2"
-                          SelectionChanged="TextSize_Changed">
-                    <ComboBoxItem Content="12" />
-                    <ComboBoxItem Content="16" />
-                    <ComboBoxItem Content="18" />
-                    <ComboBoxItem Content="24" />
-                    <ComboBoxItem Content="32" />
-                </ComboBox>
-                <ComboBox x:Name="TextColorBox"
-                          Width="118"
-                          SelectedIndex="0"
-                          SelectionChanged="TextColor_Changed">
-                    <ComboBoxItem Content="Negro" Tag="#111827" />
-                    <ComboBoxItem Content="Azul" Tag="#2563EB" />
-                    <ComboBoxItem Content="Rojo" Tag="#DC2626" />
-                    <ComboBoxItem Content="Verde" Tag="#16A34A" />
-                </ComboBox>
-                <Button Content="Izq" Click="AlignLeft_Click" />
-                <Button Content="Centro" Click="AlignCenter_Click" />
-                <Button Content="Der" Click="AlignRight_Click" />
-                <Separator Width="1" Height="24" Margin="8,0" Background="#CBD5E1" />
-                <Button Content="Fila +" Click="AddTableRow_Click" />
-                <Button Content="Fila -" Click="RemoveTableRow_Click" />
-                <Button Content="Col +" Click="AddTableColumn_Click" />
-                <Button Content="Col -" Click="RemoveTableColumn_Click" />
-            </WrapPanel>
-        </DockPanel>
-
-        <Border Grid.Row="1"
-                Grid.Column="0"
-                Background="White"
-                BorderBrush="#D8DEE9"
-                BorderThickness="0,1,1,0">
-            <DockPanel>
-                <StackPanel DockPanel.Dock="Top" Margin="10">
-                    <Button Content="Agregar pagina" Command="{Binding AddPageCommand}" />
-                    <Button Content="Eliminar pagina" Command="{Binding DeletePageCommand}" />
+        <Border Grid.Row="0"
+                Grid.ColumnSpan="3"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrushSoft}"
+                BorderThickness="0,0,0,1"
+                Padding="14,12">
+            <DockPanel LastChildFill="True">
+                <StackPanel DockPanel.Dock="Right"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center"
+                            Margin="12,0,0,0">
+                    <TextBlock Text="Zoom"
+                               VerticalAlignment="Center"
+                               Foreground="{StaticResource TextMutedBrush}"
+                               Margin="0,0,8,0" />
+                    <Slider Width="130"
+                            Minimum="0.5"
+                            Maximum="2.2"
+                            Value="{Binding Zoom, ElementName=CanvasView, Mode=TwoWay}"
+                            TickFrequency="0.1" />
                 </StackPanel>
-                <ListBox ItemsSource="{Binding Pages}"
-                         SelectedItem="{Binding SelectedPage}"
-                         BorderThickness="0"
-                         Margin="8">
+
+                <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Disabled">
+                    <WrapPanel VerticalAlignment="Center">
+                        <ui:Button Content="Guardar"
+                                   Icon="{ui:SymbolIcon Save20}"
+                                   Command="{Binding SaveCommand}"
+                                   Appearance="Primary"
+                                   Style="{StaticResource ToolButtonStyle}" />
+                        <ui:Button Content="Renombrar"
+                                   Icon="{ui:SymbolIcon Rename20}"
+                                   Command="{Binding RenameCommand}"
+                                   Style="{StaticResource ToolButtonStyle}" />
+                        <Separator Style="{StaticResource ToolbarDividerStyle}" />
+
+                        <ui:Button Content="Pagina"
+                                   Icon="{ui:SymbolIcon DocumentPdf20}"
+                                   ToolTip="Exportar pagina"
+                                   Click="ExportPage_Click"
+                                   Style="{StaticResource ToolButtonStyle}" />
+                        <ui:Button Content="PDF"
+                                   Icon="{ui:SymbolIcon DocumentPdf24}"
+                                   ToolTip="Exportar cuaderno"
+                                   Click="ExportNotebook_Click"
+                                   Style="{StaticResource ToolButtonStyle}" />
+                        <Separator Style="{StaticResource ToolbarDividerStyle}" />
+
+                        <ui:Button Icon="{ui:SymbolIcon ArrowUndo20}"
+                                   ToolTip="Deshacer"
+                                   Click="Undo_Click"
+                                   Style="{StaticResource CompactToolButtonStyle}" />
+                        <ui:Button Icon="{ui:SymbolIcon ArrowRedo20}"
+                                   ToolTip="Rehacer"
+                                   Click="Redo_Click"
+                                   Style="{StaticResource CompactToolButtonStyle}" />
+                        <Separator Style="{StaticResource ToolbarDividerStyle}" />
+
+                        <ui:Button Content="Lapiz" Icon="{ui:SymbolIcon DrawImage20}" Click="Pen_Click" Style="{StaticResource ToolButtonStyle}" />
+                        <ui:Button Content="Resaltador" Icon="{ui:SymbolIcon Highlight20}" Click="Highlighter_Click" Style="{StaticResource ToolButtonStyle}" />
+                        <ui:Button Content="Borrador" Icon="{ui:SymbolIcon Eraser20}" Click="Eraser_Click" Style="{StaticResource ToolButtonStyle}" />
+                        <ui:Button Content="Cursor" Icon="{ui:SymbolIcon Cursor20}" Click="Cursor_Click" Style="{StaticResource ToolButtonStyle}" />
+                        <ui:Button x:Name="InkColorButton" ToolTip="Color de tinta" Click="InkColorButton_Click" Style="{StaticResource CompactToolButtonStyle}">
+                            <Rectangle x:Name="InkColorPreview" Width="18" Height="18" RadiusX="4" RadiusY="4" Fill="#111827" Stroke="#CBD5E1" />
+                        </ui:Button>
+                        <TextBlock Text="Grosor" VerticalAlignment="Center" Foreground="{StaticResource TextMutedBrush}" Margin="8,0,4,0" />
+                        <Slider x:Name="InkWidthSlider" Width="96" Minimum="1" Maximum="18" Value="3" ValueChanged="InkSettings_Changed" />
+                        <Separator Style="{StaticResource ToolbarDividerStyle}" />
+
+                        <ui:Button Content="Texto" Icon="{ui:SymbolIcon TextFont20}" Click="InsertText_Click" Style="{StaticResource ToolButtonStyle}" />
+                        <ui:Button Content="Tabla" Icon="{ui:SymbolIcon Table20}" Click="InsertTable_Click" Style="{StaticResource ToolButtonStyle}" />
+                        <ui:Button Content="Grafica" Icon="{ui:SymbolIcon ChartMultiple20}" Click="InsertChart_Click" Style="{StaticResource ToolButtonStyle}" />
+                        <ui:Button Content="Imagen" Icon="{ui:SymbolIcon ImageAdd20}" Click="InsertImage_Click" Style="{StaticResource ToolButtonStyle}" />
+                        <Separator Style="{StaticResource ToolbarDividerStyle}" />
+
+                        <ComboBox x:Name="FontFamilyBox" Width="130" SelectedIndex="0" SelectionChanged="FontFamily_Changed" Margin="4">
+                            <ComboBoxItem Content="Segoe UI" />
+                            <ComboBoxItem Content="Aptos" />
+                            <ComboBoxItem Content="Calibri" />
+                            <ComboBoxItem Content="Arial" />
+                            <ComboBoxItem Content="Times New Roman" />
+                            <ComboBoxItem Content="Consolas" />
+                        </ComboBox>
+                        <ComboBox x:Name="TextSizeBox" Width="70" SelectedIndex="2" SelectionChanged="TextSize_Changed" Margin="4">
+                            <ComboBoxItem Content="12" />
+                            <ComboBoxItem Content="16" />
+                            <ComboBoxItem Content="18" />
+                            <ComboBoxItem Content="24" />
+                            <ComboBoxItem Content="32" />
+                        </ComboBox>
+                        <ui:Button Content="B" FontWeight="Bold" ToolTip="Negrita" Click="Bold_Click" Style="{StaticResource CompactToolButtonStyle}" />
+                        <ui:Button Content="I" FontStyle="Italic" ToolTip="Cursiva" Click="Italic_Click" Style="{StaticResource CompactToolButtonStyle}" />
+                        <ui:Button Content="U" ToolTip="Subrayado" Click="Underline_Click" Style="{StaticResource CompactToolButtonStyle}" />
+                        <ui:Button x:Name="TextColorButton" ToolTip="Color de fuente" Click="TextColorButton_Click" Style="{StaticResource CompactToolButtonStyle}">
+                            <Rectangle x:Name="TextColorPreview" Width="18" Height="18" RadiusX="4" RadiusY="4" Fill="#111827" Stroke="#CBD5E1" />
+                        </ui:Button>
+                        <ui:Button x:Name="HighlightColorButton" ToolTip="Color de resaltado de texto" Click="HighlightColorButton_Click" Style="{StaticResource CompactToolButtonStyle}">
+                            <Rectangle x:Name="HighlightColorPreview" Width="18" Height="18" RadiusX="4" RadiusY="4" Fill="#FEF08A" Stroke="#CBD5E1" />
+                        </ui:Button>
+                        <ui:Button Icon="{ui:SymbolIcon TextBulletListLtr20}" ToolTip="Viñetas" Click="Bullets_Click" Style="{StaticResource CompactToolButtonStyle}" />
+                        <ui:Button Icon="{ui:SymbolIcon TextNumberListLtr20}" ToolTip="Lista numerada" Click="Numbering_Click" Style="{StaticResource CompactToolButtonStyle}" />
+                        <ui:Button Icon="{ui:SymbolIcon TextIndentDecreaseLtr20}" ToolTip="Disminuir sangria" Click="DecreaseIndent_Click" Style="{StaticResource CompactToolButtonStyle}" />
+                        <ui:Button Icon="{ui:SymbolIcon TextIndentIncreaseLtr20}" ToolTip="Aumentar sangria" Click="IncreaseIndent_Click" Style="{StaticResource CompactToolButtonStyle}" />
+                        <ComboBox x:Name="LineSpacingBox" Width="78" SelectedIndex="1" SelectionChanged="LineSpacing_Changed" ToolTip="Interlineado" Margin="4">
+                            <ComboBoxItem Content="1.0" />
+                            <ComboBoxItem Content="1.2" />
+                            <ComboBoxItem Content="1.5" />
+                            <ComboBoxItem Content="2.0" />
+                        </ComboBox>
+                        <ui:Button Icon="{ui:SymbolIcon AlignLeft20}" ToolTip="Alinear izquierda" Click="AlignLeft_Click" Style="{StaticResource CompactToolButtonStyle}" />
+                        <ui:Button Icon="{ui:SymbolIcon AlignCenterHorizontal20}" ToolTip="Centrar" Click="AlignCenter_Click" Style="{StaticResource CompactToolButtonStyle}" />
+                        <ui:Button Icon="{ui:SymbolIcon AlignRight20}" ToolTip="Alinear derecha" Click="AlignRight_Click" Style="{StaticResource CompactToolButtonStyle}" />
+                        <ui:Button Icon="{ui:SymbolIcon DocumentSearch20}" ToolTip="Buscar y reemplazar" Click="FindReplace_Click" Style="{StaticResource CompactToolButtonStyle}" />
+                        <Separator Style="{StaticResource ToolbarDividerStyle}" />
+
+                        <ui:Button Content="Fila +" Icon="{ui:SymbolIcon AddSquare20}" Click="AddTableRow_Click" Style="{StaticResource ToolButtonStyle}" />
+                        <ui:Button Content="Fila -" Icon="{ui:SymbolIcon TableDeleteRow20}" Click="RemoveTableRow_Click" Style="{StaticResource ToolButtonStyle}" />
+                        <ui:Button Content="Col +" Icon="{ui:SymbolIcon AddSquareMultiple20}" Click="AddTableColumn_Click" Style="{StaticResource ToolButtonStyle}" />
+                        <ui:Button Content="Col -" Icon="{ui:SymbolIcon TableDeleteColumn20}" Click="RemoveTableColumn_Click" Style="{StaticResource ToolButtonStyle}" />
+                    </WrapPanel>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
+        <Border Grid.Row="1" Grid.Column="0" Background="{StaticResource SurfaceAltBrush}" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="0,0,1,0" Padding="16">
+            <DockPanel>
+                <ui:Button Content="Agregar pagina" Icon="{ui:SymbolIcon AddCircle20}" Command="{Binding AddPageCommand}" Appearance="Primary" DockPanel.Dock="Top" Margin="0,0,0,8" />
+                <ui:Button Content="Eliminar pagina" Icon="{ui:SymbolIcon Delete20}" Command="{Binding DeletePageCommand}" DockPanel.Dock="Top" Margin="0,0,0,14" />
+                <ListBox ItemsSource="{Binding Pages}" SelectedItem="{Binding SelectedPage}" BorderThickness="0" Background="Transparent" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Margin" Value="0,0,0,10" />
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <Border x:Name="PageCard" Background="White" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" CornerRadius="12" Padding="12">
+                                            <Border.Effect>
+                                                <DropShadowEffect BlurRadius="12"
+                                                                  ShadowDepth="1"
+                                                                  Direction="270"
+                                                                  Opacity="0.06"
+                                                                  Color="#0F172A" />
+                                            </Border.Effect>
+                                            <ContentPresenter />
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="PageCard" Property="BorderBrush" Value="#2563EB" />
+                                                <Setter TargetName="PageCard" Property="BorderThickness" Value="2" />
+                                            </Trigger>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="PageCard" Property="Background" Value="#F8FAFC" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
                     <ListBox.ItemTemplate>
                         <DataTemplate DataType="{x:Type models:NotebookPage}">
-                            <StackPanel Margin="5">
-                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
-                                <TextBlock Text="{Binding BackgroundType}" Foreground="#64748B" />
-                            </StackPanel>
+                            <DockPanel>
+                                <Border Width="34" Height="44" CornerRadius="6" Background="#EEF2FF" DockPanel.Dock="Left" Margin="0,0,10,0">
+                                    <ui:SymbolIcon Symbol="Document20" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#2563EB" />
+                                </Border>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding BackgroundType}" Foreground="{StaticResource TextMutedBrush}" Margin="0,3,0,0" />
+                                </StackPanel>
+                            </DockPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
@@ -144,50 +228,34 @@
                               CurrentPage="{Binding SelectedPage}"
                               PageChanged="CanvasView_PageChanged" />
 
-        <Border Grid.Row="1"
-                Grid.Column="2"
-                Background="White"
-                BorderBrush="#D8DEE9"
-                BorderThickness="1,1,0,0"
-                Padding="14">
+        <Border Grid.Row="1" Grid.Column="2" Background="{StaticResource SurfaceAltBrush}" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1,0,0,0" Padding="16">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel>
-                    <TextBlock Text="Pagina"
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               Margin="4,0,0,10" />
-                    <TextBlock Text="Fondo" Margin="4,0,0,2" />
-                    <ComboBox ItemsSource="{Binding BackgroundTypes}"
-                              SelectedItem="{Binding SelectedPage.BackgroundType, Mode=TwoWay}"
-                              SelectionChanged="Background_SelectionChanged" />
-
-                    <Separator Margin="0,14" />
-                    <local:AiAssistantPanel x:Name="AiPanel" />
-
-                    <Separator Margin="0,14" />
-                    <TextBlock Text="Objetos"
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               Margin="4,0,0,8" />
-                    <TextBlock Text="Texto, tablas, graficas e imagenes activos. Usa la barra, Ctrl+V o click derecho. Selecciona objetos para mover, duplicar, rotar, ordenar o eliminar."
-                               TextWrapping="Wrap"
-                               Foreground="#64748B"
-                               Margin="4" />
+                    <Border Style="{StaticResource CardBorderStyle}" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="Pagina" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10" />
+                            <TextBlock Text="Fondo" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4" />
+                            <ComboBox ItemsSource="{Binding BackgroundTypes}" SelectedItem="{Binding SelectedPage.BackgroundType, Mode=TwoWay}" SelectionChanged="Background_SelectionChanged" />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource CardBorderStyle}" Margin="0,0,0,14">
+                        <local:AiAssistantPanel x:Name="AiPanel" />
+                    </Border>
+                    <Border Style="{StaticResource CardBorderStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Objetos" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8" />
+                            <TextBlock Text="Selecciona texto, tablas, graficas o imagenes para mover, duplicar, rotar, ordenar o eliminar. Usa Ctrl+V o click derecho para pegar."
+                                       TextWrapping="Wrap"
+                                       Foreground="{StaticResource TextMutedBrush}" />
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </ScrollViewer>
         </Border>
 
-        <DockPanel Grid.Row="2"
-                   Grid.ColumnSpan="3"
-                   Background="White"
-                   LastChildFill="False">
-            <TextBlock Text="{Binding FilePath}"
-                       Foreground="#64748B"
-                       Margin="12,8"
-                       TextTrimming="CharacterEllipsis" />
-            <TextBlock DockPanel.Dock="Right"
-                       Margin="12,8"
-                       Foreground="#64748B">
+        <DockPanel Grid.Row="2" Grid.ColumnSpan="3" Background="{StaticResource SurfaceBrush}" LastChildFill="False">
+            <TextBlock Text="{Binding FilePath}" Foreground="{StaticResource TextMutedBrush}" Margin="14,9" TextTrimming="CharacterEllipsis" />
+            <TextBlock DockPanel.Dock="Right" Margin="14,9" Foreground="{StaticResource TextMutedBrush}">
                 <TextBlock.Style>
                     <Style TargetType="TextBlock">
                         <Setter Property="Text" Value="Guardado" />
@@ -200,5 +268,46 @@
                 </TextBlock.Style>
             </TextBlock>
         </DockPanel>
+
+        <Popup x:Name="InkColorPopup" PlacementTarget="{Binding ElementName=InkColorButton}" Placement="Bottom" StaysOpen="False">
+            <Border Background="White" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" CornerRadius="10" Padding="8">
+                <UniformGrid Columns="5">
+                    <Button Style="{StaticResource ColorSwatchButtonStyle}" Tag="#111827" Click="InkColor_Click" Background="#111827" />
+                    <Button Style="{StaticResource ColorSwatchButtonStyle}" Tag="#2563EB" Click="InkColor_Click" Background="#2563EB" />
+                    <Button Style="{StaticResource ColorSwatchButtonStyle}" Tag="#DC2626" Click="InkColor_Click" Background="#DC2626" />
+                    <Button Style="{StaticResource ColorSwatchButtonStyle}" Tag="#16A34A" Click="InkColor_Click" Background="#16A34A" />
+                    <Button Style="{StaticResource ColorSwatchButtonStyle}" Tag="#FACC15" Click="InkColor_Click" Background="#FACC15" />
+                    <Button Style="{StaticResource ColorSwatchButtonStyle}" Tag="#7C3AED" Click="InkColor_Click" Background="#7C3AED" />
+                    <Button Style="{StaticResource ColorSwatchButtonStyle}" Tag="#F97316" Click="InkColor_Click" Background="#F97316" />
+                    <Button Style="{StaticResource ColorSwatchButtonStyle}" Tag="#0F766E" Click="InkColor_Click" Background="#0F766E" />
+                    <Button Style="{StaticResource ColorSwatchButtonStyle}" Tag="#64748B" Click="InkColor_Click" Background="#64748B" />
+                    <Button Style="{StaticResource ColorSwatchButtonStyle}" Tag="#FFFFFF" Click="InkColor_Click" Background="#FFFFFF" />
+                </UniformGrid>
+            </Border>
+        </Popup>
+
+        <Popup x:Name="TextColorPopup" PlacementTarget="{Binding ElementName=TextColorButton}" Placement="Bottom" StaysOpen="False">
+            <Border Background="White" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" CornerRadius="10" Padding="8">
+                <UniformGrid Columns="5">
+                    <Button Style="{StaticResource ColorSwatchButtonStyle}" Tag="#111827" Click="TextColor_Click" Background="#111827" />
+                    <Button Style="{StaticResource ColorSwatchButtonStyle}" Tag="#2563EB" Click="TextColor_Click" Background="#2563EB" />
+                    <Button Style="{StaticResource ColorSwatchButtonStyle}" Tag="#DC2626" Click="TextColor_Click" Background="#DC2626" />
+                    <Button Style="{StaticResource ColorSwatchButtonStyle}" Tag="#16A34A" Click="TextColor_Click" Background="#16A34A" />
+                    <Button Style="{StaticResource ColorSwatchButtonStyle}" Tag="#7C3AED" Click="TextColor_Click" Background="#7C3AED" />
+                </UniformGrid>
+            </Border>
+        </Popup>
+
+        <Popup x:Name="HighlightColorPopup" PlacementTarget="{Binding ElementName=HighlightColorButton}" Placement="Bottom" StaysOpen="False">
+            <Border Background="White" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" CornerRadius="10" Padding="8">
+                <UniformGrid Columns="5">
+                    <Button Style="{StaticResource ColorSwatchButtonStyle}" Tag="Transparent" Click="HighlightColor_Click" Background="#FFFFFF" />
+                    <Button Style="{StaticResource ColorSwatchButtonStyle}" Tag="#FEF08A" Click="HighlightColor_Click" Background="#FEF08A" />
+                    <Button Style="{StaticResource ColorSwatchButtonStyle}" Tag="#BBF7D0" Click="HighlightColor_Click" Background="#BBF7D0" />
+                    <Button Style="{StaticResource ColorSwatchButtonStyle}" Tag="#BFDBFE" Click="HighlightColor_Click" Background="#BFDBFE" />
+                    <Button Style="{StaticResource ColorSwatchButtonStyle}" Tag="#FBCFE8" Click="HighlightColor_Click" Background="#FBCFE8" />
+                </UniformGrid>
+            </Border>
+        </Popup>
     </Grid>
 </Window>

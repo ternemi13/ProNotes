@@ -1,6 +1,6 @@
 # ProNotes
 
-ProNotes es un cuaderno digital de escritorio para Windows, creado con C#/.NET y WPF. Esta version implementa el nucleo del spec: biblioteca de cuadernos, formato `.cdgz`, paginas, escritura/dibujo con `InkCanvas`, fondos de hoja, herramientas de tinta, zoom, autoguardado, imagenes embebidas, cajas de texto editables con formato, tablas editables, graficas simples, editor de portadas y exportacion PDF.
+ProNotes es un cuaderno digital de escritorio para Windows, creado con C#/.NET, WPF y WPF-UI. Esta version implementa el nucleo del spec: biblioteca de cuadernos, formato `.cdgz`, paginas, escritura/dibujo con `InkCanvas`, fondos de hoja, herramientas de tinta, zoom, autoguardado, imagenes embebidas, cajas de texto editables con formato tipo Word, tablas editables, graficas simples, editor de portadas y exportacion PDF.
 
 ## Requisitos
 
@@ -36,6 +36,7 @@ dotnet publish .\src\CuadernoDigital.App\CuadernoDigital.App.csproj -c Release -
 - Fase 2: lienzo de dibujo, fondos, herramientas, zoom y autoguardado, implementada.
 - Fase 3: imagenes embebidas, recorte previo a insertar, pegado desde portapapeles, movimiento, redimensionado, rotacion, duplicado y orden por capas, implementada.
 - Fase 4: cajas de texto editables con formato, tablas editables y graficas simples, movibles, redimensionables, rotables, duplicables y ordenables por capas. Las tablas permiten elegir filas/columnas al insertarlas y modificar filas/columnas despues. Las graficas soportan barras, lineas y circular desde datos ingresados por el usuario.
+- UI: rediseño visual con WPF-UI/Fluent Design, toolbar con iconos, paletas visuales de color, paneles en cards y chat IA con markdown.
 - Fase 5: editor de portadas implementado desde el menu de tres puntos de cada cuaderno, con titulo, subtitulo, color, acento, imagen de fondo opcional, plantillas, encuadre de imagen y vista previa en la biblioteca.
 - Fase 6: exportacion PDF implementada para pagina actual y cuaderno completo, incluyendo portada y render visual de las paginas.
 - Fase 7: asistente Gemini implementado en el panel lateral, con API key cifrada localmente, chat organico, lectura de la pagina actual cuando el pedido lo requiere, adjuntos de imagen/PDF/texto, pegado de imagenes con Ctrl+V e insercion de respuestas en los apuntes.

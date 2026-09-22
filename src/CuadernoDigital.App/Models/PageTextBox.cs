@@ -11,6 +11,9 @@ public sealed class PageTextBox
     public double FontSize { get; set; } = 18;
     public string FontFamily { get; set; } = "Segoe UI";
     public string Foreground { get; set; } = "#111827";
+    public string HighlightColor { get; set; } = "Transparent";
+    public double LineSpacing { get; set; } = 1.2;
+    public int IndentLevel { get; set; }
     public bool IsBold { get; set; }
     public bool IsItalic { get; set; }
     public bool IsUnderline { get; set; }
