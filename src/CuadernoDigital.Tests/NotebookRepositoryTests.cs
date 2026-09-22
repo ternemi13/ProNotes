@@ -19,6 +19,9 @@ public sealed class NotebookRepositoryTests
         notebook.Cover.TemplateName = "Band";
         notebook.Cover.BackgroundImageBase64 = Convert.ToBase64String([9, 8, 7]);
         notebook.Cover.BackgroundImageMimeType = "image/png";
+        notebook.Cover.BackgroundImageOffsetX = 0.25;
+        notebook.Cover.BackgroundImageOffsetY = -0.35;
+        notebook.Cover.BackgroundImageScale = 1.4;
         notebook.Pages[0].InkBase64 = "sample";
         repository.Save(notebook);
 
@@ -33,6 +36,9 @@ public sealed class NotebookRepositoryTests
         Assert.Equal("Band", loaded.Cover.TemplateName);
         Assert.Equal(Convert.ToBase64String([9, 8, 7]), loaded.Cover.BackgroundImageBase64);
         Assert.Equal("image/png", loaded.Cover.BackgroundImageMimeType);
+        Assert.Equal(0.25, loaded.Cover.BackgroundImageOffsetX);
+        Assert.Equal(-0.35, loaded.Cover.BackgroundImageOffsetY);
+        Assert.Equal(1.4, loaded.Cover.BackgroundImageScale);
         Assert.Single(loaded.Pages);
         Assert.Equal("sample", loaded.Pages[0].InkBase64);
     }

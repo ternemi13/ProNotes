@@ -160,10 +160,6 @@
                               SelectionChanged="Background_SelectionChanged" />
 
                     <Separator Margin="0,14" />
-                    <local:CoverDesignerView Cover="{Binding Notebook.Cover}"
-                                             CoverChanged="CoverDesigner_CoverChanged" />
-
-                    <Separator Margin="0,14" />
                     <TextBlock Text="Asistente IA"
                                FontSize="18"
                                FontWeight="SemiBold"

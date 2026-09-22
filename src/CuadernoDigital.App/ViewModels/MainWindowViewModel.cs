@@ -16,8 +16,8 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         this.repository = repository;
         NewNotebookCommand = new RelayCommand(_ => CreateNotebook());
-        OpenNotebookCommand = new RelayCommand(_ => OpenSelected(), _ => SelectedNotebook is not null);
-        DeleteNotebookCommand = new RelayCommand(_ => DeleteSelected(), _ => SelectedNotebook is not null);
+        OpenNotebookCommand = new RelayCommand(parameter => OpenNotebook(parameter as NotebookSummary ?? SelectedNotebook), parameter => parameter is NotebookSummary || SelectedNotebook is not null);
+        DeleteNotebookCommand = new RelayCommand(parameter => DeleteNotebook(parameter as NotebookSummary ?? SelectedNotebook), parameter => parameter is NotebookSummary || SelectedNotebook is not null);
         RefreshCommand = new RelayCommand(_ => LoadLibrary());
         LoadLibrary();
     }
@@ -65,27 +65,55 @@ public sealed class MainWindowViewModel : ObservableObject
         LoadLibrary();
     }
 
-    private void OpenSelected()
+    public void OpenNotebook(NotebookSummary? summary)
     {
-        if (SelectedNotebook is null)
+        if (summary is null)
         {
             return;
         }
 
-        var notebook = repository.Load(SelectedNotebook.FilePath);
-        OpenEditor(notebook, SelectedNotebook.FilePath);
+        var notebook = repository.Load(summary.FilePath);
+        OpenEditor(notebook, summary.FilePath);
         LoadLibrary();
     }
 
-    private void DeleteSelected()
+    public void EditCover(NotebookSummary? summary, Window? owner = null)
     {
-        if (SelectedNotebook is null)
+        if (summary is null)
+        {
+            return;
+        }
+
+        var notebook = repository.Load(summary.FilePath);
+        var dialog = new CoverEditorWindow(notebook.Cover)
+        {
+            Owner = owner
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        CoverEditorWindow.CopyCover(dialog.EditedCover, notebook.Cover);
+        if (!string.IsNullOrWhiteSpace(notebook.Cover.Title))
+        {
+            notebook.Title = notebook.Cover.Title.Trim();
+        }
+
+        repository.Save(notebook, summary.FilePath);
+        LoadLibrary();
+    }
+
+    public void DeleteNotebook(NotebookSummary? summary)
+    {
+        if (summary is null)
         {
             return;
         }
 
         var result = MessageBox.Show(
-            $"Eliminar \"{SelectedNotebook.Title}\"?",
+            $"Eliminar \"{summary.Title}\"?",
             "Eliminar cuaderno",
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning);
@@ -95,7 +123,7 @@ public sealed class MainWindowViewModel : ObservableObject
             return;
         }
 
-        repository.Delete(SelectedNotebook.FilePath);
+        repository.Delete(summary.FilePath);
         LoadLibrary();
     }
 

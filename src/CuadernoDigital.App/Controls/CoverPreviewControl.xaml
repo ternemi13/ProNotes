@@ -1,0 +1,35 @@
+<UserControl x:Class="CuadernoDigital.App.Controls.CoverPreviewControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             ClipToBounds="True">
+    <Border x:Name="RootBorder"
+            CornerRadius="{Binding CornerRadius, RelativeSource={RelativeSource AncestorType=UserControl}}"
+            ClipToBounds="True">
+        <Grid x:Name="RootGrid" ClipToBounds="True">
+            <Image x:Name="CoverImage"
+                   Stretch="UniformToFill"
+                   RenderTransformOrigin="0.5,0.5"
+                   IsHitTestVisible="False" />
+            <Border x:Name="ColorOverlay" />
+            <Border x:Name="AccentBand"
+                    Width="8"
+                    HorizontalAlignment="Left" />
+            <StackPanel x:Name="TextPanel"
+                        VerticalAlignment="Center"
+                        Margin="22,16,18,16">
+                <TextBlock x:Name="TitleText"
+                           FontSize="{Binding TitleFontSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                           FontWeight="SemiBold"
+                           TextWrapping="Wrap"
+                           MaxHeight="88"
+                           TextTrimming="CharacterEllipsis" />
+                <TextBlock x:Name="SubtitleText"
+                           FontSize="{Binding SubtitleFontSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                           TextWrapping="Wrap"
+                           Margin="0,8,0,0"
+                           MaxHeight="44"
+                           TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

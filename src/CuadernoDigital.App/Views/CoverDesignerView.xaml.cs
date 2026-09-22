@@ -1,8 +1,8 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using CuadernoDigital.App.Models;
 using Microsoft.Win32;
 
@@ -18,6 +18,10 @@ public partial class CoverDesignerView : UserControl
             new PropertyMetadata(null, OnCoverChanged));
 
     private bool isLoading;
+    private bool isDraggingPreview;
+    private Point dragStart;
+    private double dragStartOffsetX;
+    private double dragStartOffsetY;
 
     public CoverDesignerView()
     {
@@ -45,6 +49,9 @@ public partial class CoverDesignerView : UserControl
         TitleBox.Text = cover?.Title ?? string.Empty;
         SubtitleBox.Text = cover?.Subtitle ?? string.Empty;
         SelectColorItem(cover?.BackgroundColor, cover?.AccentColor);
+        ImageScaleSlider.Value = cover?.BackgroundImageScale ?? 1;
+        ImageOffsetXSlider.Value = cover?.BackgroundImageOffsetX ?? 0;
+        ImageOffsetYSlider.Value = cover?.BackgroundImageOffsetY ?? 0;
 
         isLoading = false;
         RenderPreview();
@@ -60,6 +67,20 @@ public partial class CoverDesignerView : UserControl
         Cover.Title = string.IsNullOrWhiteSpace(TitleBox.Text) ? "Nuevo cuaderno" : TitleBox.Text.Trim();
         Cover.Subtitle = string.IsNullOrWhiteSpace(SubtitleBox.Text) ? "ProNotes" : SubtitleBox.Text.Trim();
         ApplySelectedColors(Cover);
+        RenderPreview();
+        CoverChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void ImageFrame_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (isLoading || Cover is null)
+        {
+            return;
+        }
+
+        Cover.BackgroundImageScale = Math.Clamp(ImageScaleSlider.Value, 0.7, 2.4);
+        Cover.BackgroundImageOffsetX = Math.Clamp(ImageOffsetXSlider.Value, -1, 1);
+        Cover.BackgroundImageOffsetY = Math.Clamp(ImageOffsetYSlider.Value, -1, 1);
         RenderPreview();
         CoverChanged?.Invoke(this, EventArgs.Empty);
     }
@@ -122,6 +143,10 @@ public partial class CoverDesignerView : UserControl
         Cover.BackgroundImageBase64 = Convert.ToBase64String(bytes);
         Cover.BackgroundImageMimeType = GetMimeType(dialog.FileName);
         Cover.TemplateName = "Photo";
+        Cover.BackgroundImageScale = Math.Max(1, Cover.BackgroundImageScale);
+        isLoading = true;
+        ImageScaleSlider.Value = Cover.BackgroundImageScale;
+        isLoading = false;
         RenderPreview();
         CoverChanged?.Invoke(this, EventArgs.Empty);
     }
@@ -135,39 +160,107 @@ public partial class CoverDesignerView : UserControl
 
         Cover.BackgroundImageBase64 = null;
         Cover.BackgroundImageMimeType = null;
+        Cover.BackgroundImageOffsetX = 0;
+        Cover.BackgroundImageOffsetY = 0;
+        Cover.BackgroundImageScale = 1;
+        isLoading = true;
+        ImageScaleSlider.Value = 1;
+        ImageOffsetXSlider.Value = 0;
+        ImageOffsetYSlider.Value = 0;
+        isLoading = false;
         RenderPreview();
         CoverChanged?.Invoke(this, EventArgs.Empty);
     }
 
+    private void CenterImage_Click(object sender, RoutedEventArgs e)
+    {
+        if (Cover is null)
+        {
+            return;
+        }
+
+        Cover.BackgroundImageOffsetX = 0;
+        Cover.BackgroundImageOffsetY = 0;
+        isLoading = true;
+        ImageOffsetXSlider.Value = 0;
+        ImageOffsetYSlider.Value = 0;
+        isLoading = false;
+        RenderPreview();
+        CoverChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void Preview_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (Cover is null || string.IsNullOrWhiteSpace(Cover.BackgroundImageBase64))
+        {
+            return;
+        }
+
+        isDraggingPreview = true;
+        dragStart = e.GetPosition(Preview);
+        dragStartOffsetX = Cover.BackgroundImageOffsetX;
+        dragStartOffsetY = Cover.BackgroundImageOffsetY;
+        Preview.CaptureMouse();
+        e.Handled = true;
+    }
+
+    private void Preview_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (!isDraggingPreview || Cover is null)
+        {
+            return;
+        }
+
+        var position = e.GetPosition(Preview);
+        var delta = position - dragStart;
+        Cover.BackgroundImageOffsetX = Math.Clamp(dragStartOffsetX + delta.X / Math.Max(1, Preview.ActualWidth * 0.5), -1, 1);
+        Cover.BackgroundImageOffsetY = Math.Clamp(dragStartOffsetY + delta.Y / Math.Max(1, Preview.ActualHeight * 0.5), -1, 1);
+
+        isLoading = true;
+        ImageOffsetXSlider.Value = Cover.BackgroundImageOffsetX;
+        ImageOffsetYSlider.Value = Cover.BackgroundImageOffsetY;
+        isLoading = false;
+        RenderPreview();
+        CoverChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void Preview_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (isDraggingPreview)
+        {
+            Preview.ReleaseMouseCapture();
+        }
+
+        isDraggingPreview = false;
+    }
+
     private void RenderPreview()
     {
-        if (Cover is null || PreviewBorder is null)
+        if (Cover is null || Preview is null)
         {
             return;
         }
 
         EnsureCoverDefaults(Cover);
         var backgroundColor = ParseColor(Cover.BackgroundColor, Color.FromRgb(37, 99, 235));
-        var accentColor = ParseColor(Cover.AccentColor, Color.FromRgb(147, 197, 253));
-        var foreground = IsLight(backgroundColor) && Cover.TemplateName == "Minimal"
-            ? new SolidColorBrush(Color.FromRgb(17, 24, 39))
-            : Brushes.White;
-        var secondary = IsLight(backgroundColor) && Cover.TemplateName == "Minimal"
-            ? new SolidColorBrush(Color.FromRgb(71, 85, 105))
-            : new SolidColorBrush(Color.FromRgb(226, 232, 240));
+        var titleColor = IsLight(backgroundColor) && string.Equals(Cover.TemplateName, "Minimal", StringComparison.OrdinalIgnoreCase)
+            ? "#111827"
+            : "White";
+        var subtitleColor = IsLight(backgroundColor) && string.Equals(Cover.TemplateName, "Minimal", StringComparison.OrdinalIgnoreCase)
+            ? "#475569"
+            : "#E2E8F0";
 
-        PreviewBorder.Background = new SolidColorBrush(backgroundColor);
-        PreviewOverlay.Background = new SolidColorBrush(backgroundColor);
-        PreviewOverlay.Opacity = string.IsNullOrWhiteSpace(Cover.BackgroundImageBase64) ? 1 : 0.72;
-        PreviewAccent.Background = new SolidColorBrush(accentColor);
-        PreviewAccent.Visibility = Cover.TemplateName == "Minimal" ? Visibility.Collapsed : Visibility.Visible;
-        PreviewTitle.Text = Cover.Title;
-        PreviewSubtitle.Text = Cover.Subtitle;
-        PreviewTitle.Foreground = foreground;
-        PreviewSubtitle.Foreground = secondary;
-        PreviewTitle.HorizontalAlignment = Cover.TemplateName == "Minimal" ? HorizontalAlignment.Center : HorizontalAlignment.Left;
-        PreviewSubtitle.HorizontalAlignment = Cover.TemplateName == "Minimal" ? HorizontalAlignment.Center : HorizontalAlignment.Left;
-        PreviewImageLayer.Background = CreateImageBrush(Cover.BackgroundImageBase64);
+        Preview.CoverTitle = Cover.Title;
+        Preview.Subtitle = Cover.Subtitle;
+        Preview.BackgroundColor = Cover.BackgroundColor;
+        Preview.AccentColor = Cover.AccentColor;
+        Preview.ImageBase64 = Cover.BackgroundImageBase64;
+        Preview.ImageScale = Cover.BackgroundImageScale;
+        Preview.ImageOffsetX = Cover.BackgroundImageOffsetX;
+        Preview.ImageOffsetY = Cover.BackgroundImageOffsetY;
+        Preview.TemplateName = Cover.TemplateName;
+        Preview.TitleColor = titleColor;
+        Preview.SubtitleColor = subtitleColor;
     }
 
     private static void EnsureCoverDefaults(NotebookCover? cover)
@@ -200,6 +293,11 @@ public partial class CoverDesignerView : UserControl
         if (string.IsNullOrWhiteSpace(cover.Subtitle))
         {
             cover.Subtitle = "ProNotes";
+        }
+
+        if (cover.BackgroundImageScale <= 0)
+        {
+            cover.BackgroundImageScale = 1;
         }
     }
 
@@ -236,35 +334,6 @@ public partial class CoverDesignerView : UserControl
         }
 
         ColorBox.SelectedIndex = -1;
-    }
-
-    private static Brush? CreateImageBrush(string? imageBase64)
-    {
-        if (string.IsNullOrWhiteSpace(imageBase64))
-        {
-            return null;
-        }
-
-        try
-        {
-            var bytes = Convert.FromBase64String(imageBase64);
-            using var stream = new MemoryStream(bytes);
-            var bitmap = new BitmapImage();
-            bitmap.BeginInit();
-            bitmap.CacheOption = BitmapCacheOption.OnLoad;
-            bitmap.StreamSource = stream;
-            bitmap.EndInit();
-            bitmap.Freeze();
-
-            return new ImageBrush(bitmap)
-            {
-                Stretch = Stretch.UniformToFill
-            };
-        }
-        catch
-        {
-            return null;
-        }
     }
 
     private static Color ParseColor(string? color, Color fallback)

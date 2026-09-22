@@ -46,11 +46,6 @@ public partial class NotebookEditorView : Window
         ViewModel.MarkDirty();
     }
 
-    private void CoverDesigner_CoverChanged(object sender, EventArgs e)
-    {
-        ViewModel.MarkCoverDirty();
-    }
-
     private void Background_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         ViewModel.MarkDirty();

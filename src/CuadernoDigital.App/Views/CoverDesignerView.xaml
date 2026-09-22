@@ -1,80 +1,114 @@
 <UserControl x:Class="CuadernoDigital.App.Views.CoverDesignerView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <StackPanel>
-        <TextBlock Text="Portada"
-                   FontSize="18"
-                   FontWeight="SemiBold"
-                   Margin="4,0,0,8" />
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:CuadernoDigital.App.Controls">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1.45*" />
+            <ColumnDefinition Width="320" />
+        </Grid.ColumnDefinitions>
 
-        <Border x:Name="PreviewBorder"
-                Height="150"
-                CornerRadius="6"
-                ClipToBounds="True"
-                Margin="4">
+        <Border Background="#EEF2F7"
+                Padding="28">
             <Grid>
-                <Border x:Name="PreviewImageLayer" />
-                <Border x:Name="PreviewOverlay"
-                        Opacity="0.72" />
-                <Border x:Name="PreviewAccent"
-                        Width="9"
-                        HorizontalAlignment="Left" />
-                <StackPanel VerticalAlignment="Center" Margin="22,14,18,14">
-                    <TextBlock x:Name="PreviewTitle"
-                               Foreground="White"
-                               FontSize="23"
-                               FontWeight="SemiBold"
-                               TextWrapping="Wrap"
-                               MaxHeight="66" />
-                    <TextBlock x:Name="PreviewSubtitle"
-                               Foreground="#E2E8F0"
-                               FontSize="13"
-                               TextWrapping="Wrap"
-                               Margin="0,7,0,0"
-                               MaxHeight="38" />
-                </StackPanel>
+                <controls:CoverPreviewControl x:Name="Preview"
+                                              Height="430"
+                                              MaxWidth="660"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              CornerRadius="10"
+                                              TitleFontSize="38"
+                                              SubtitleFontSize="18"
+                                              Cursor="SizeAll"
+                                              MouseLeftButtonDown="Preview_MouseLeftButtonDown"
+                                              MouseMove="Preview_MouseMove"
+                                              MouseLeftButtonUp="Preview_MouseLeftButtonUp" />
             </Grid>
         </Border>
 
-        <TextBlock Text="Titulo" Margin="4,8,0,0" />
-        <TextBox x:Name="TitleBox"
-                 TextChanged="CoverInput_Changed" />
+        <ScrollViewer Grid.Column="1"
+                      VerticalScrollBarVisibility="Auto"
+                      Background="White">
+            <StackPanel Margin="18">
+                <TextBlock Text="Editar portada"
+                           FontSize="22"
+                           FontWeight="SemiBold"
+                           Margin="4,0,0,2" />
+                <TextBlock Text="Ajusta la portada que se vera en la biblioteca."
+                           Foreground="#64748B"
+                           TextWrapping="Wrap"
+                           Margin="4,0,4,14" />
 
-        <TextBlock Text="Subtitulo" Margin="4,6,0,0" />
-        <TextBox x:Name="SubtitleBox"
-                 TextChanged="CoverInput_Changed" />
+                <TextBlock Text="Nombre del cuaderno" Margin="4,8,0,0" />
+                <TextBox x:Name="TitleBox"
+                         TextChanged="CoverInput_Changed" />
 
-        <TextBlock Text="Color" Margin="4,8,0,0" />
-        <ComboBox x:Name="ColorBox"
-                  SelectionChanged="CoverInput_Changed">
-            <ComboBoxItem Content="Azul estudio" Tag="#2563EB|#93C5FD" />
-            <ComboBoxItem Content="Verde laboratorio" Tag="#047857|#6EE7B7" />
-            <ComboBoxItem Content="Rojo apuntes" Tag="#B91C1C|#FCA5A5" />
-            <ComboBoxItem Content="Grafito" Tag="#111827|#94A3B8" />
-            <ComboBoxItem Content="Violeta" Tag="#6D28D9|#C4B5FD" />
-        </ComboBox>
+                <TextBlock Text="Subtitulo" Margin="4,6,0,0" />
+                <TextBox x:Name="SubtitleBox"
+                         TextChanged="CoverInput_Changed" />
 
-        <TextBlock Text="Plantilla" Margin="4,8,0,0" />
-        <UniformGrid Columns="2" Margin="0,0,0,4">
-            <Button Content="Clasica"
-                    Tag="Classic"
-                    Click="Template_Click" />
-            <Button Content="Banda"
-                    Tag="Band"
-                    Click="Template_Click" />
-            <Button Content="Minimal"
-                    Tag="Minimal"
-                    Click="Template_Click" />
-            <Button Content="Foto"
-                    Tag="Photo"
-                    Click="Template_Click" />
-        </UniformGrid>
+                <TextBlock Text="Color" Margin="4,10,0,0" />
+                <ComboBox x:Name="ColorBox"
+                          SelectionChanged="CoverInput_Changed">
+                    <ComboBoxItem Content="Azul estudio" Tag="#2563EB|#93C5FD" />
+                    <ComboBoxItem Content="Verde laboratorio" Tag="#047857|#6EE7B7" />
+                    <ComboBoxItem Content="Rojo apuntes" Tag="#B91C1C|#FCA5A5" />
+                    <ComboBoxItem Content="Grafito" Tag="#111827|#94A3B8" />
+                    <ComboBoxItem Content="Violeta" Tag="#6D28D9|#C4B5FD" />
+                </ComboBox>
 
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="Imagen"
-                    Click="ChooseImage_Click" />
-            <Button Content="Quitar"
-                    Click="ClearImage_Click" />
-        </StackPanel>
-    </StackPanel>
+                <TextBlock Text="Plantilla" Margin="4,10,0,0" />
+                <UniformGrid Columns="2" Margin="0,0,0,4">
+                    <Button Content="Clasica"
+                            Tag="Classic"
+                            Click="Template_Click" />
+                    <Button Content="Banda"
+                            Tag="Band"
+                            Click="Template_Click" />
+                    <Button Content="Minimal"
+                            Tag="Minimal"
+                            Click="Template_Click" />
+                    <Button Content="Foto"
+                            Tag="Photo"
+                            Click="Template_Click" />
+                </UniformGrid>
+
+                <Separator Margin="0,12" />
+                <TextBlock Text="Imagen de fondo"
+                           FontWeight="SemiBold"
+                           Margin="4,0,0,8" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="Cambiar imagen"
+                            Click="ChooseImage_Click" />
+                    <Button Content="Quitar"
+                            Click="ClearImage_Click" />
+                </StackPanel>
+
+                <TextBlock Text="Zoom" Margin="4,12,0,0" />
+                <Slider x:Name="ImageScaleSlider"
+                        Minimum="0.7"
+                        Maximum="2.4"
+                        TickFrequency="0.05"
+                        ValueChanged="ImageFrame_Changed" />
+
+                <TextBlock Text="Mover horizontal" Margin="4,8,0,0" />
+                <Slider x:Name="ImageOffsetXSlider"
+                        Minimum="-1"
+                        Maximum="1"
+                        TickFrequency="0.02"
+                        ValueChanged="ImageFrame_Changed" />
+
+                <TextBlock Text="Mover vertical" Margin="4,8,0,0" />
+                <Slider x:Name="ImageOffsetYSlider"
+                        Minimum="-1"
+                        Maximum="1"
+                        TickFrequency="0.02"
+                        ValueChanged="ImageFrame_Changed" />
+
+                <Button Content="Centrar imagen"
+                        HorizontalAlignment="Right"
+                        Click="CenterImage_Click" />
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
 </UserControl>
