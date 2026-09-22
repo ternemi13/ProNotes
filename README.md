@@ -1,6 +1,6 @@
 # ProNotes
 
-ProNotes es un cuaderno digital de escritorio para Windows, creado con C#/.NET y WPF. Esta primera entrega implementa el nucleo del spec: biblioteca de cuadernos, formato `.cdgz`, paginas, escritura/dibujo con `InkCanvas`, fondos de hoja, herramientas de tinta, zoom y autoguardado.
+ProNotes es un cuaderno digital de escritorio para Windows, creado con C#/.NET y WPF. Esta version implementa el nucleo del spec: biblioteca de cuadernos, formato `.cdgz`, paginas, escritura/dibujo con `InkCanvas`, fondos de hoja, herramientas de tinta, zoom, autoguardado, imagenes embebidas y cajas de texto editables.
 
 ## Requisitos
 
@@ -36,8 +36,8 @@ dotnet publish .\src\CuadernoDigital.App\CuadernoDigital.App.csproj -c Release -
 
 - Fase 1: cuadernos y paginas, implementada.
 - Fase 2: lienzo de dibujo, fondos, herramientas, zoom y autoguardado, implementada.
-- Fase 3: imagenes movibles y recortables.
-- Fase 4: cajas de texto, tablas y graficas.
+- Fase 3: imagenes embebidas, movibles y redimensionables, implementada parcialmente. Falta recorte.
+- Fase 4: cajas de texto editables, movibles y redimensionables, implementadas parcialmente. Faltan tablas y graficas.
 - Fase 5: editor de portadas.
 - Fase 6: exportacion PDF con QuestPDF.
 - Fase 7: asistente Gemini con API key protegida localmente.

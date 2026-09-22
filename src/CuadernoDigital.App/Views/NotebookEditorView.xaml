@@ -8,6 +8,7 @@
         MinWidth="900"
         MinHeight="620"
         Background="#EEF2F7"
+        KeyDown="Window_KeyDown"
         Closing="Window_Closing">
     <Grid>
         <Grid.RowDefinitions>
@@ -54,6 +55,9 @@
                 <Button Content="Resaltador" Click="Highlighter_Click" />
                 <Button Content="Borrador" Click="Eraser_Click" />
                 <Button Content="Seleccionar" Click="Select_Click" />
+                <Button Content="Texto" Click="InsertText_Click" />
+                <Button Content="Imagen" Click="InsertImage_Click" />
+                <Button Content="Pegar" Click="PasteImage_Click" />
                 <ComboBox x:Name="InkColorBox"
                           Width="118"
                           SelectedIndex="0"
@@ -139,7 +143,7 @@
                            FontSize="18"
                            FontWeight="SemiBold"
                            Margin="4,0,0,8" />
-                <TextBlock Text="Texto, tablas, graficas e imagenes quedan reservados para las siguientes fases."
+                <TextBlock Text="Texto e imagenes activos. Usa Texto, Imagen o Ctrl+V. Para mover, redimensionar o borrar un objeto, cambia a Seleccionar."
                            TextWrapping="Wrap"
                            Foreground="#64748B"
                            Margin="4" />

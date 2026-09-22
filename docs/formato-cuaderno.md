@@ -20,6 +20,7 @@ Cada pagina contiene:
 - `title`: nombre visible de la pagina.
 - `backgroundType`: `Plain`, `Grid`, `Lined` o `Dotted`.
 - `inkBase64`: trazos WPF serializados en formato ISF y convertidos a Base64.
-- `images`: lista reservada para la Fase 3.
+- `images`: imagenes insertadas con metadata de posicion, tamano y contenido Base64.
+- `textBoxes`: cajas de texto editables con posicion, tamano, contenido y formato basico.
 
-El formato esta pensado para poder guardar todo sin base de datos, copiar cuadernos entre maquinas y versionar el archivo como una unidad.
+El formato esta pensado para poder guardar todo sin base de datos, copiar cuadernos entre maquinas y versionar el archivo como una unidad. En esta version las imagenes quedan embebidas en el JSON de pagina para mantener el archivo `.cdgz` autocontenido.

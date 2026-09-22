@@ -32,6 +32,7 @@ public sealed class NotebookPage : INotifyPropertyChanged
     }
 
     public List<StickerImage> Images { get; set; } = [];
+    public List<PageTextBox> TextBoxes { get; set; } = [];
 
     private void SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
     {

@@ -21,8 +21,9 @@
                         BorderThickness="1" />
                 <controls:PageBackgroundRenderer BackgroundType="{Binding CurrentPage.BackgroundType, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                  IsHitTestVisible="False" />
-                <Canvas x:Name="ObjectLayer" IsHitTestVisible="False" />
+                <Canvas x:Name="ObjectLayer" Panel.ZIndex="2" IsHitTestVisible="False" />
                 <InkCanvas x:Name="InkSurface"
+                           Panel.ZIndex="1"
                            Background="Transparent"
                            PreviewMouseDown="InkSurface_PreviewInputStart"
                            PreviewStylusDown="InkSurface_PreviewInputStart"

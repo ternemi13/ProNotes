@@ -102,6 +102,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private void OpenEditor(Notebook notebook, string filePath)
     {
         var window = new NotebookEditorView(repository, notebook, filePath);
-        window.ShowDialog();
+        window.Closed += (_, _) => LoadLibrary();
+        window.Show();
     }
 }

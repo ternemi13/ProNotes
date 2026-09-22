@@ -1,11 +1,13 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using CuadernoDigital.App.Models;
 using CuadernoDigital.App.Services;
 using CuadernoDigital.App.ViewModels;
+using Microsoft.Win32;
 
 namespace CuadernoDigital.App.Views;
 
@@ -73,6 +75,36 @@ public partial class NotebookEditorView : Window
         ApplyInkSettings();
     }
 
+    private void InsertText_Click(object sender, RoutedEventArgs e)
+    {
+        CanvasView.InsertTextBox();
+        currentTool = InkToolMode.Select;
+        ApplyInkSettings();
+    }
+
+    private void InsertImage_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "Insertar imagen",
+            Filter = "Imagenes|*.png;*.jpg;*.jpeg;*.bmp;*.gif|Todos los archivos|*.*"
+        };
+
+        if (dialog.ShowDialog(this) == true)
+        {
+            CanvasView.InsertImageFromFile(dialog.FileName);
+            currentTool = InkToolMode.Select;
+            ApplyInkSettings();
+        }
+    }
+
+    private void PasteImage_Click(object sender, RoutedEventArgs e)
+    {
+        CanvasView.InsertImageFromClipboard();
+        currentTool = InkToolMode.Select;
+        ApplyInkSettings();
+    }
+
     private void InkSettings_Changed(object sender, RoutedEventArgs e)
     {
         if (CanvasView is not null)
@@ -100,6 +132,20 @@ public partial class NotebookEditorView : Window
     private void Redo_Click(object sender, RoutedEventArgs e)
     {
         CanvasView.Redo();
+    }
+
+    private void Window_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (Keyboard.FocusedElement is TextBox)
+        {
+            return;
+        }
+
+        if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.V)
+        {
+            PasteImage_Click(sender, e);
+            e.Handled = true;
+        }
     }
 
     private void Window_Closing(object? sender, CancelEventArgs e)
