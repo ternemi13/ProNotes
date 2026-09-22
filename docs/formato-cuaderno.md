@@ -12,9 +12,11 @@ assets/
   img_<id>.png
 ```
 
-`metadata.json` contiene los datos globales del cuaderno: id, titulo, portada, fechas y la lista ordenada de paginas.
+`metadata.json` contiene los datos globales del cuaderno: id, titulo, portada, fechas, historial del asistente IA y la lista ordenada de paginas.
 
 La portada guarda `backgroundColor`, `accentColor`, `backgroundImageBase64`, `backgroundImageMimeType`, `backgroundImageOffsetX`, `backgroundImageOffsetY`, `backgroundImageScale`, `templateName`, `title` y `subtitle`.
+
+El historial IA se guarda en `aiChatHistory` con mensajes `{ role, text, createdAt }`. La API key de Gemini no forma parte del archivo `.cdgz`; se guarda cifrada localmente en el perfil de Windows.
 
 Cada pagina contiene:
 

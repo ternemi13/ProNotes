@@ -8,4 +8,5 @@ public sealed class Notebook
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
     public List<NotebookPage> Pages { get; set; } = [];
+    public List<AiChatMessage> AiChatHistory { get; set; } = [];
 }

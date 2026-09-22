@@ -184,6 +184,7 @@ public sealed class NotebookRepository
         public DateTimeOffset CreatedAt { get; set; }
         public DateTimeOffset UpdatedAt { get; set; }
         public List<string> Pages { get; set; } = [];
+        public List<AiChatMessage> AiChatHistory { get; set; } = [];
 
         public static NotebookPackage FromNotebook(Notebook notebook)
         {
@@ -194,7 +195,8 @@ public sealed class NotebookRepository
                 Cover = notebook.Cover,
                 CreatedAt = notebook.CreatedAt,
                 UpdatedAt = notebook.UpdatedAt,
-                Pages = notebook.Pages.Select(GetPageFileName).ToList()
+                Pages = notebook.Pages.Select(GetPageFileName).ToList(),
+                AiChatHistory = notebook.AiChatHistory.ToList()
             };
         }
 
@@ -206,7 +208,8 @@ public sealed class NotebookRepository
                 Title = Title,
                 Cover = Cover,
                 CreatedAt = CreatedAt,
-                UpdatedAt = UpdatedAt
+                UpdatedAt = UpdatedAt,
+                AiChatHistory = AiChatHistory
             };
         }
     }

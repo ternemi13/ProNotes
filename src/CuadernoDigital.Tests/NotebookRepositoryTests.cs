@@ -22,6 +22,18 @@ public sealed class NotebookRepositoryTests
         notebook.Cover.BackgroundImageOffsetX = 0.25;
         notebook.Cover.BackgroundImageOffsetY = -0.35;
         notebook.Cover.BackgroundImageScale = 1.4;
+        notebook.AiChatHistory.Add(new AiChatMessage
+        {
+            Role = "user",
+            Text = "Explicame esta pagina",
+            CreatedAt = DateTimeOffset.Parse("2026-09-21T10:00:00Z")
+        });
+        notebook.AiChatHistory.Add(new AiChatMessage
+        {
+            Role = "assistant",
+            Text = "Claro, revisemos tus apuntes.",
+            CreatedAt = DateTimeOffset.Parse("2026-09-21T10:00:10Z")
+        });
         notebook.Pages[0].InkBase64 = "sample";
         repository.Save(notebook);
 
@@ -39,6 +51,10 @@ public sealed class NotebookRepositoryTests
         Assert.Equal(0.25, loaded.Cover.BackgroundImageOffsetX);
         Assert.Equal(-0.35, loaded.Cover.BackgroundImageOffsetY);
         Assert.Equal(1.4, loaded.Cover.BackgroundImageScale);
+        Assert.Equal(2, loaded.AiChatHistory.Count);
+        Assert.Equal("user", loaded.AiChatHistory[0].Role);
+        Assert.Equal("Explicame esta pagina", loaded.AiChatHistory[0].Text);
+        Assert.Equal("assistant", loaded.AiChatHistory[1].Role);
         Assert.Single(loaded.Pages);
         Assert.Equal("sample", loaded.Pages[0].InkBase64);
     }
@@ -215,5 +231,23 @@ public sealed class NotebookRepositoryTests
         Assert.Equal(1, table.Rows);
         Assert.Equal(2, table.Columns);
         Assert.Equal(["A", "B"], table.Cells);
+    }
+
+    [Fact]
+    public void GeminiSettingsService_SaveLoadClear_ProtectsLocalKey()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "ProNotesTests", Guid.NewGuid().ToString("N"));
+        var settings = new GeminiSettingsService(directory);
+
+        settings.SaveApiKey("sample-secret-key");
+
+        Assert.True(settings.HasApiKey);
+        Assert.Equal("sample-secret-key", settings.LoadApiKey());
+        Assert.Equal(-1, File.ReadAllBytes(Path.Combine(directory, "gemini.key")).AsSpan().IndexOf("sample-secret-key"u8));
+
+        settings.ClearApiKey();
+
+        Assert.False(settings.HasApiKey);
+        Assert.Null(settings.LoadApiKey());
     }
 }

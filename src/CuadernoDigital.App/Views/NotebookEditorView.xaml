@@ -162,15 +162,7 @@
                               SelectionChanged="Background_SelectionChanged" />
 
                     <Separator Margin="0,14" />
-                    <TextBlock Text="Asistente IA"
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               Margin="4,0,0,8" />
-                    <TextBlock Text="Listo para Fase 7: chat Gemini y revision de pagina."
-                               TextWrapping="Wrap"
-                               Foreground="#64748B"
-                               Margin="4" />
-                    <Button Content="Configurar despues" IsEnabled="False" />
+                    <local:AiAssistantPanel x:Name="AiPanel" />
 
                     <Separator Margin="0,14" />
                     <TextBlock Text="Objetos"
