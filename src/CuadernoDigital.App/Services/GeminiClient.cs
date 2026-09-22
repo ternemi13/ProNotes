@@ -9,7 +9,13 @@ namespace CuadernoDigital.App.Services;
 
 public sealed class GeminiClient
 {
-    private const string ModelName = "gemini-2.0-flash";
+    private static readonly string[] ModelNames =
+    [
+        "gemini-3.6-flash",
+        "gemini-3.5-flash",
+        "gemini-3.1-flash-lite"
+    ];
+
     private const string EndpointFormat = "https://generativelanguage.googleapis.com/v1beta/models/{0}:generateContent?key={1}";
     private readonly HttpClient httpClient;
 
@@ -230,24 +236,58 @@ public sealed class GeminiClient
             throw new InvalidOperationException("Configura primero tu API key de Gemini.");
         }
 
-        var endpoint = string.Format(EndpointFormat, ModelName, Uri.EscapeDataString(apiKey.Trim()));
-        using var response = await httpClient.PostAsJsonAsync(endpoint, request, cancellationToken);
-        var payload = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (!response.IsSuccessStatusCode)
+        HttpRequestException? lastModelError = null;
+        foreach (var modelName in ModelNames)
         {
-            throw new HttpRequestException(BuildErrorMessage(response.StatusCode, payload));
+            var endpoint = string.Format(EndpointFormat, modelName, Uri.EscapeDataString(apiKey.Trim()));
+            using var response = await httpClient.PostAsJsonAsync(endpoint, request, cancellationToken);
+            var payload = await response.Content.ReadAsStringAsync(cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                var message = BuildErrorMessage(response.StatusCode, payload, modelName);
+                if (ShouldTryNextModel(response.StatusCode, payload))
+                {
+                    lastModelError = new HttpRequestException(message);
+                    continue;
+                }
+
+                throw new HttpRequestException(message);
+            }
+
+            using var document = JsonDocument.Parse(payload);
+            return document.RootElement
+                .GetProperty("candidates")[0]
+                .GetProperty("content")
+                .GetProperty("parts")[0]
+                .GetProperty("text")
+                .GetString() ?? string.Empty;
         }
 
-        using var document = JsonDocument.Parse(payload);
-        return document.RootElement
-            .GetProperty("candidates")[0]
-            .GetProperty("content")
-            .GetProperty("parts")[0]
-            .GetProperty("text")
-            .GetString() ?? string.Empty;
+        throw lastModelError ?? new HttpRequestException("Gemini no acepto ningun modelo Flash configurado.");
     }
 
-    private static string BuildErrorMessage(HttpStatusCode statusCode, string payload)
+    private static bool ShouldTryNextModel(HttpStatusCode statusCode, string payload)
+    {
+        if (statusCode == HttpStatusCode.NotFound)
+        {
+            return true;
+        }
+
+        if (statusCode != HttpStatusCode.BadRequest)
+        {
+            return false;
+        }
+
+        var apiMessage = TryExtractApiErrorMessage(payload)?.ToLowerInvariant() ?? string.Empty;
+        return apiMessage.Contains("model", StringComparison.Ordinal)
+            && (apiMessage.Contains("not found", StringComparison.Ordinal)
+                || apiMessage.Contains("not available", StringComparison.Ordinal)
+                || apiMessage.Contains("not supported", StringComparison.Ordinal)
+                || apiMessage.Contains("deprecated", StringComparison.Ordinal)
+                || apiMessage.Contains("shut down", StringComparison.Ordinal));
+    }
+
+    private static string BuildErrorMessage(HttpStatusCode statusCode, string payload, string modelName)
     {
         var apiMessage = TryExtractApiErrorMessage(payload);
         var prefix = statusCode switch
@@ -259,9 +299,11 @@ public sealed class GeminiClient
             _ => $"Gemini respondio {(int)statusCode}."
         };
 
-        return string.IsNullOrWhiteSpace(apiMessage)
+        var message = string.IsNullOrWhiteSpace(apiMessage)
             ? prefix
             : $"{prefix} {apiMessage}";
+
+        return $"{message} Modelo: {modelName}.";
     }
 
     private static JsonObject CreateInlineDataPart(string mimeType, byte[] data)
